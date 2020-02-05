@@ -23,20 +23,20 @@ public class TeleOpXDrive extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        motor_fLeft = hardwareMap.get(DcMotor.class, "motor_fLeft");
-        motor_fRight = hardwareMap.get(DcMotor.class, "motor_fRight");
-        motor_bLeft = hardwareMap.get(DcMotor.class, "motor_bLeft");
-        motor_bRight = hardwareMap.get(DcMotor.class, "motor_bRight");
+        motor_fLeft = hardwareMap.get(DcMotor.class, "left_front");
+        motor_fRight = hardwareMap.get(DcMotor.class, "right_front");
+        motor_bLeft = hardwareMap.get(DcMotor.class, "left_rear");
+        motor_bRight = hardwareMap.get(DcMotor.class, "right_rear");
 
 
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        motor_fLeft.setDirection(DcMotor.Direction.FORWARD);
-        motor_fRight.setDirection(DcMotor.Direction.REVERSE);
-        motor_bLeft.setDirection(DcMotor.Direction.FORWARD);
-        motor_bRight.setDirection(DcMotor.Direction.REVERSE);
+        motor_fLeft.setDirection(DcMotor.Direction.REVERSE);
+        motor_fRight.setDirection(DcMotor.Direction.FORWARD);
+        motor_bLeft.setDirection(DcMotor.Direction.REVERSE);
+        motor_bRight.setDirection(DcMotor.Direction.FORWARD);
 
 
 
