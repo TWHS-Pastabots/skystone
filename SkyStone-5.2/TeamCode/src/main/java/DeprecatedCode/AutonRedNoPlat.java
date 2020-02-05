@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package DeprecatedCode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -24,7 +24,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import java.util.Stack;
 
 @Autonomous
-public class AutonTurnTesting extends LinearOpMode {
+public class AutonRedNoPlat extends LinearOpMode {
     private DcMotor motor_center;
     private DcMotor motor_left;
     private DcMotor motor_right;
@@ -57,12 +57,12 @@ public class AutonTurnTesting extends LinearOpMode {
     static final double     CENTER_COUNTS_PER_INCH = (HEX140_COUNTS_PER_MOTOR_REV * CENTER_GEAR_REDUCTION) / (WHEEL_DIAMETER_INCHES * 3.1416); //THIS CHANGED
     static final double     ENCODER_COUNTS_PER_INCH         = (ENCODER_COUNTS_PER_MOTOR_REV) / (SMALL_WHEEL_DIAMETER_INCHES * 3.1416);
     static final double     DRIVE_SPEED_FAST        = 0.8;
-    static final double     DRIVE_SPEED_SLOW        = 0.55; //0.6
+    static final double     DRIVE_SPEED_SLOW        = 0.6; //0.6
     static final double     TURN_SPEED              = 0.65;
-    static final double     HEADING_THRESHOLD       = 3.0 ;      // As tight as we can make it with an integer gyro
+    static final double     HEADING_THRESHOLD       = 3 ;      // As tight as we can make it with an integer gyro
     static final double     DISTANCE_THRESHOLD      = 10;      //How close the robot has to be to stop
     static final double     P_TURN_COEFF            = 0.19;     // Larger is more responsive, but also less stable
-    static final double     P_DRIVE_COEFF           = 0.165;     // Larger is more responsive, but also less stable
+    static final double     P_DRIVE_COEFF           = 0.175;     // Larger is more responsive, but also less stable
 
     @Override
     public void runOpMode() {
@@ -162,7 +162,285 @@ public class AutonTurnTesting extends LinearOpMode {
         //_____________________________________________________|
         // Note: Reverse movement is obtained by setting a negative distance (not speed), negative on H-Drive is left
 
-        gyroTurn(TURN_SPEED, -90.0, 10.0);
+        //-------------
+        // M I D D L E
+        //-------------
+        if(stoneConfig.equals("Middle")){
+            //Put the arm and claws in a ready position
+            raiseArm();
+            unclamp();
+            sleep(2000);
+
+            //Drive forward to the block
+            gyroDrive2(DRIVE_SPEED_SLOW, 35,0, true, false,10.0);
+
+            //Lower arm onto block
+            lowerArm();
+            sleep(500);
+
+            //Drive backwards with block
+            gyroDrive2(0.4, -18,0, false, false,2.0);
+
+            //Grip the block
+            clamp();
+            sleep(750);
+
+            //Raise arm up
+            raiseArmEvenHigher();
+
+            //Drive up a little
+            gyroDrive2(0.4, 8, 0.0, false, false, 2.0);
+
+            //Turn to face the delivery area
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+
+            raiseArm();
+
+            //Drive to platform
+            gyroDrive2(DRIVE_SPEED_SLOW, 85,-90.0, true, true,5.0);
+
+            //Release block onto platform
+            lowerArm();
+            unclamp();
+            sleep(500);
+            raiseArmHigher();
+            sleep(250);
+            clamp();
+            raiseArm();
+
+            //Drive back to block
+            gyroDrive2(DRIVE_SPEED_SLOW, -124.75,-90.0, true, true,5.0);
+
+            unclamp();
+            sleep(1000);
+
+            //Turn to face the block
+            gyroTurn(TURN_SPEED, 0.0, 2.0);
+
+            //Drive forward to the block
+            gyroDrive2(DRIVE_SPEED_SLOW, 9,0, true, false,2.0);
+
+            //Lower arm onto block
+            lowerArm();
+            sleep(500);
+
+            //Drive backwards with block
+            gyroDrive2(0.4, -24,0, false, false,2.0);
+
+            //Grip the block
+            clamp();
+            sleep(1000);
+
+            //Raise arm up
+            raiseArmEvenHigher();
+
+            //Drive up a little
+            gyroDrive2(0.4, 9, 0.0, false, false, 2.0);
+
+            //Turn to face the delivery area
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+
+            raiseArm();
+
+            //Drive to delivery area
+            gyroDrive2(DRIVE_SPEED_SLOW, 113,-90.0, true, true,5.0);
+
+            //Let go of the block
+            unclamp();
+            sleep(1000);
+
+            //Drive back to park on the line
+            gyroDrive2(DRIVE_SPEED_SLOW, -25,-90.0, true, false,2.0);
+
+            //Total timeouts = 34.5s
+        }
+
+        //---------
+        // L E F T NOTDONE
+        //---------
+        else if(stoneConfig.equals("Left")){
+
+            //Put the arm and claws in a ready position
+            raiseArm();
+            unclamp();
+
+            //Drive forward to the block
+            //gyroDriveDiagonal(DRIVE_SPEED_SLOW, 0.5, 30, -13.0,0, true, 3.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDriveCenter(0.5, -3.25, 0.0, false, 1.5);
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDriveCenter(0.5, -3.25, 0.0, false, 1.5);
+            gyroDrive2(DRIVE_SPEED_SLOW, 7,0, true, false,2.0);
+            gyroDriveCenter(0.5, -3.25, 0.0, false, 1.5);
+
+            //Lower arm onto block
+            lowerArm();
+            sleep(500);
+
+            //Drive backwards with block
+            gyroDrive2(DRIVE_SPEED_SLOW, -19,0, false, false,2.0);
+
+            //Grip the block
+            clamp();
+            sleep(1000);
+
+            //Raise arm up
+            raiseArmHigher();
+
+            //Drive up a little
+            gyroDrive2(DRIVE_SPEED_SLOW, 7.0, 0.0, false, false, 2.0);
+
+            //Turn to face the delivery area
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+
+            raiseArm();
+
+            //Drive to platform
+            gyroDrive2(DRIVE_SPEED_SLOW, 95,-90.0, true, false,5.0);
+
+            //Release block onto platform
+            unclamp();
+
+            //Drive back to block
+            gyroDrive2(DRIVE_SPEED_SLOW, -113.5,-90.0, true, false,5.0);
+
+            //Turn to face the block
+            sleep(1000);
+            gyroTurn(TURN_SPEED, 0.0, 2.0);
+
+            //Drive forward to the block
+            gyroDriveCenter(0.5, -4, 0.0, false, 1.5);
+            gyroDrive2(0.5, 16,0, false, false,2.0);
+
+
+            //Lower arm onto block
+            lowerLeftSideGrabber();
+            sleep(500);
+
+            //Drive backwards with block
+            gyroDrive2(DRIVE_SPEED_SLOW, -18,0, false, false,2.0);
+            gyroDriveCenter(0.5, 4, 0.0, false, 1.5);
+
+            //Drive up a little
+            gyroDrive2(DRIVE_SPEED_SLOW, 4.0, 0.0, false, false, 2.0);
+
+            //Turn to face the delivery area
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+
+            //Drive to delivery area
+            gyroDrive2(DRIVE_SPEED_SLOW, 110,-90.0, true, false,5.0);
+
+            //Let go of the block
+            raiseSideGrabbers();
+            sleep(1000);
+
+            //Drive back to park on the line
+            gyroDrive2(DRIVE_SPEED_SLOW, -25,-90.0, true, false,2.0);
+
+        }
+
+        //-----------
+        // R I G H T NOTDONE
+        //-----------
+        else if(stoneConfig.equals("Right")){
+
+            //Put the arm and claws in a ready position
+            raiseArm();
+            unclamp();
+            sleep(2000);
+
+            //Drive forward to the block
+            //gyroDriveDiagonal(DRIVE_SPEED_SLOW, 0.5, 32, -8.0,0, true, 3.0);
+
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDriveCenter(0.5, 3, 0.0, false, 1.5);
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDriveCenter(0.5, 3, 0.0, false, 1.5);
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDriveCenter(0.5, 2.75, 0.0, false, 1.5);
+
+            /*
+            gyroDrive2(DRIVE_SPEED_SLOW, 15,0, true, false,2.0);
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 7,0, true, false,2.0);
+            gyroTurn(TURN_SPEED, 0.0, 2.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 15,0, true, false,2.0);
+
+             */
+
+            //Lower arm onto block
+            lowerArm();
+            sleep(500);
+
+            //Drive backwards with block
+            gyroDrive2(DRIVE_SPEED_SLOW, -20,0, false, false,2.0);
+
+            //Grip the block
+            clamp();
+            sleep(1000);
+
+            //Raise arm up
+            raiseArmEvenHigher();
+
+            //Drive up a little
+            gyroDrive2(DRIVE_SPEED_SLOW, 8, 0.0, false, false, 2.0);
+
+            //Turn to face the delivery area
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+
+            raiseArm();
+
+            //Drive to platform
+            gyroDrive2(DRIVE_SPEED_SLOW, 72,-90.0, true, false,5.0);
+
+            //Release block onto platform
+            unclamp();
+
+            //Drive back to block
+            gyroDrive2(DRIVE_SPEED_SLOW, -105,-90.0, true, false,5.0);
+            sleep(500);
+
+            //Turn to face the block
+            gyroTurn(TURN_SPEED, 0.0, 2.0);
+
+            //Drive forward to the block
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, false, false,2.0);
+
+            //Lower arm onto block
+            lowerArm();
+            sleep(500);
+
+            //Drive backwards with block
+            gyroDrive2(0.5, -28,0, false, false,2.0);
+
+            //Grip the block
+            clamp();
+            sleep(1000);
+
+            //Raise arm up
+            raiseArmEvenHigher();
+
+            //Drive up a little
+            gyroDrive2(DRIVE_SPEED_SLOW, 10, 0.0, false, false, 2.0);
+
+            //Turn to face the delivery area
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+
+            raiseArm();
+
+            //Drive to delivery area
+            gyroDrive2(DRIVE_SPEED_SLOW, 105,-90.0, true, false,5.0);
+
+            //Let go of the block
+            lowerArm();
+            unclamp();
+            sleep(500);
+            raiseArm();
+
+            //Drive back to park on the line
+            gyroDrive2(DRIVE_SPEED_SLOW, -25,-90.0, true, false,2.0);
+
+        }
 
 
 
@@ -205,11 +483,11 @@ public class AutonTurnTesting extends LinearOpMode {
     }
 
     private void lowerLeftSideGrabber(){
-        servo_platformLeft.setPosition(0.3);
+        servo_platformLeft.setPosition(0.48);
     }
 
     private void lowerRightSideGrabber(){
-        servo_platformRight.setPosition(0.7);
+        servo_platformRight.setPosition(0.52);
     }
 
     private void raiseSideGrabbers(){
@@ -597,10 +875,9 @@ public class AutonTurnTesting extends LinearOpMode {
 
         // keep looping while we have time remaining.
         holdTimer.reset();
-
         while (opModeIsActive() && (holdTimer.time() < holdTime)) {
             // Update telemetry & Allow time for other processes to run.
-
+            onHeading(speed, angle, P_TURN_COEFF);
             telemetry.update();
         }
 
@@ -638,22 +915,22 @@ public class AutonTurnTesting extends LinearOpMode {
         }
         else if(Math.abs(error) < 30.0){
             steer = getSteer(error, PCoeff);
-            rightSpeed = speed * (Math.signum(steer)) * 0.4;
+            rightSpeed = speed * (Math.signum(steer)) * 0.55;
             leftSpeed = -rightSpeed;
         }
         else if(Math.abs(error) < 45.0){
             steer = getSteer(error, PCoeff);
-            rightSpeed = speed * (Math.signum(steer)) * 0.5;
+            rightSpeed = speed * (Math.signum(steer)) * 0.65;
             leftSpeed = -rightSpeed;
         }
         else if(Math.abs(error) < 55.0){
             steer = getSteer(error, PCoeff);
-            rightSpeed = speed * (Math.signum(steer)) * 0.6;
+            rightSpeed = speed * (Math.signum(steer)) * 0.75;
             leftSpeed = -rightSpeed;
         }
         else if(Math.abs(error) < 75.0){
             steer = getSteer(error, PCoeff);
-            rightSpeed = speed * (Math.signum(steer)) * 0.7;
+            rightSpeed = speed * (Math.signum(steer)) * 0.85;
             leftSpeed = -rightSpeed;
         }
         else {

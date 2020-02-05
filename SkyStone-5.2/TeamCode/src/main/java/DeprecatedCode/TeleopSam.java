@@ -1,17 +1,15 @@
-package org.firstinspires.ftc.teamcode;
+package DeprecatedCode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import java.util.ArrayList;
 
 @TeleOp
-public class BasicTeleOp extends LinearOpMode {
+public class TeleopSam extends LinearOpMode {
     private DcMotor motor_center;
     private DcMotor motor_left;
     private DcMotor motor_right;
@@ -63,8 +61,7 @@ public class BasicTeleOp extends LinearOpMode {
         motor_center.setDirection(DcMotor.Direction.FORWARD);
         motor_tape.setDirection(DcMotor.Direction.FORWARD);
 
-        servo_cup.resetDeviceConfigurationForOpMode();
-        servo_cup.setPosition(1.0);
+        servo_cup.setPosition(0.0);
         servo_grabber.resetDeviceConfigurationForOpMode();
         servo_gripRight.resetDeviceConfigurationForOpMode();
         servo_gripLeft.resetDeviceConfigurationForOpMode();
@@ -121,16 +118,19 @@ public class BasicTeleOp extends LinearOpMode {
             }
 
             if(gamepad2.dpad_up) {
-                servo_grabber.setPosition(0.3);
+                servo_grabber.setPosition(0.5);
             }
             else if(gamepad2.dpad_down) {
 
                 servo_grabber.setPosition(1.0);
 
             }
-            else if(gamepad2.a) {
-                servo_grabber.setPosition(0.6);
+            else if(gamepad2.dpad_left) {
+                servo_grabber.setPosition(0.3);
 
+            }
+            else if(gamepad2.dpad_right) {
+                servo_grabber.setPosition(0.62);
             }
 
             if(gamepad2.left_bumper) {
@@ -175,10 +175,10 @@ public class BasicTeleOp extends LinearOpMode {
                 servo_platformLeft.setPosition(1.0);
             }
             if(cupIsGo){
-                servo_cup.setPosition(0.0);
+                servo_cup.setPosition(1.0);
             }
             else{
-                servo_cup.setPosition(1.0);
+                servo_cup.setPosition(0.0);
             }
 
 

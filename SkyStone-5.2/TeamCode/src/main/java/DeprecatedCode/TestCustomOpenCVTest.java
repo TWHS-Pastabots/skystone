@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package DeprecatedCode;
 
 import com.disnodeteam.dogecv.detectors.skystone.SkystoneDetector;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;

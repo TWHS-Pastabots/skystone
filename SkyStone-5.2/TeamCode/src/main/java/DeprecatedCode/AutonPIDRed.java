@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package DeprecatedCode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -24,7 +24,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import java.util.Stack;
 
 @Autonomous
-public class AutonPIDBlue extends LinearOpMode {
+public class AutonPIDRed extends LinearOpMode {
     private DcMotor motor_center;
     private DcMotor motor_left;
     private DcMotor motor_right;
@@ -65,7 +65,7 @@ public class AutonPIDBlue extends LinearOpMode {
     static final double     P_TURN_COEFF            = 0.19;     // Larger is more responsive, but also less stable
     static final double     P_DRIVE_COEFF           = 0.175;     // Larger is more responsive, but also less stable
     static final double     Kp                      = 0.15;
-    static final double     Ki                      = 0.175;
+    static final double     Ki                      = 0.17;
     static final double     Kd                      = 0.01;
 
     @Override
@@ -183,7 +183,7 @@ public class AutonPIDBlue extends LinearOpMode {
             sleep(500);
 
             //Drive backwards with block
-            gyroDrive2(DRIVE_SPEED_SLOW, -18,0, false, false,2.0);
+            gyroDrive2(0.4, -18,0, false, false,2.0);
 
             //Grip the block
             clamp();
@@ -193,22 +193,27 @@ public class AutonPIDBlue extends LinearOpMode {
             raiseArmEvenHigher();
 
             //Drive up a little
-            gyroDrive2(DRIVE_SPEED_SLOW, 8, 0.0, false, false, 2.0);
+            gyroDrive2(0.4, 8, 0.0, false, false, 2.0);
 
             //Turn to face the delivery area
-            gyroTurn(TURN_SPEED, 90.0, 2.0);
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
 
             raiseArm();
 
             //Drive to platform
-            gyroDrive2(DRIVE_SPEED_SLOW, 85,90.0, true, true,5.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 85,-90.0, true, true,5.0);
 
             //Release block onto platform
+            lowerArm();
             unclamp();
-
+            sleep(500);
+            raiseArmHigher();
+            sleep(250);
+            clamp();
+            raiseArm();
 
             //Drive back to block
-            gyroDrive2(DRIVE_SPEED_SLOW, -112,90.0, true, true,5.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, -124.75,-90.0, true, true,5.0);
 
             unclamp();
             sleep(1000);
@@ -217,14 +222,14 @@ public class AutonPIDBlue extends LinearOpMode {
             gyroTurn(TURN_SPEED, 0.0, 2.0);
 
             //Drive forward to the block
-            gyroDrive2(DRIVE_SPEED_SLOW, 13,0, true, false,2.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 9,0, true, false,2.0);
 
             //Lower arm onto block
             lowerArm();
             sleep(500);
 
             //Drive backwards with block
-            gyroDrive2(DRIVE_SPEED_SLOW, -24,0, false, false,2.0);
+            gyroDrive2(0.4, -24,0, false, false,2.0);
 
             //Grip the block
             clamp();
@@ -234,27 +239,22 @@ public class AutonPIDBlue extends LinearOpMode {
             raiseArmEvenHigher();
 
             //Drive up a little
-            gyroDrive2(DRIVE_SPEED_SLOW, 12, 0.0, false, false, 2.0);
+            gyroDrive2(0.4, 9, 0.0, false, false, 2.0);
 
             //Turn to face the delivery area
-            gyroTurn(TURN_SPEED, 90.0, 2.0);
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
 
             raiseArm();
 
             //Drive to delivery area
-            gyroDrive2(DRIVE_SPEED_SLOW, 116,90.0, true, true,5.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 113,-90.0, true, true,5.0);
 
             //Let go of the block
-            lowerArm();
             unclamp();
-            sleep(500);
-            raiseArmHigher();
-            sleep(250);
-            clamp();
-            raiseArm();
+            sleep(1000);
 
             //Drive back to park on the line
-            gyroDrive2(DRIVE_SPEED_SLOW, -25,90.0, true, false,2.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, -25,-90.0, true, false,2.0);
 
             //Total timeouts = 34.5s
         }
@@ -267,6 +267,7 @@ public class AutonPIDBlue extends LinearOpMode {
             //Put the arm and claws in a ready position
             raiseArm();
             unclamp();
+            sleep(2000);
 
             //Drive forward to the block
             //gyroDriveDiagonal(DRIVE_SPEED_SLOW, 0.5, 30, -13.0,0, true, 3.0);
@@ -275,25 +276,25 @@ public class AutonPIDBlue extends LinearOpMode {
             gyroDriveCenter(0.5, -3.25, 0.0, false, 1.5);
             gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
             gyroDriveCenter(0.5, -3.25, 0.0, false, 1.5);
-            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 7,0, true, false,2.0);
             gyroDriveCenter(0.5, -3.25, 0.0, false, 1.5);
 
              */
 
             gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
-            if(!driveCenter2(0.5, -10, 0.0, false, 4.0)){
+            if(!gyroDriveCenter2(0.5, -11, 0.0, false, 4.0)){
                 double distanceLeft = 10 - (Math.abs(motor_encoderCenter.getCurrentPosition()) / ENCODER_COUNTS_PER_INCH);
                 gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
-                if(!driveCenter2(0.5, -1*distanceLeft, 0.0, false, 4.0)){
+                if(!gyroDriveCenter2(0.5, -1*distanceLeft, 0.0, false, 4.0)){
                     distanceLeft = 10 - (Math.abs(motor_encoderCenter.getCurrentPosition()) / ENCODER_COUNTS_PER_INCH);
-                    gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
-                    driveCenter2(0.5, -1*distanceLeft, 0.0, false, 4.0);
+                    gyroDrive2(DRIVE_SPEED_SLOW, 7,0, true, false,2.0);
+                    gyroDriveCenter2(0.5, -1*distanceLeft, 0.0, false, 4.0);
                 }
                 else
                     gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
             }
             else
-                gyroDrive2(DRIVE_SPEED_SLOW, 22,0, true, false,2.0);
+                gyroDrive2(DRIVE_SPEED_SLOW, 20,0, true, false,2.0);
 
             //Lower arm onto block
             lowerArm();
@@ -313,18 +314,130 @@ public class AutonPIDBlue extends LinearOpMode {
             gyroDrive2(DRIVE_SPEED_SLOW, 9.0, 0.0, false, false, 2.0);
 
             //Turn to face the delivery area
-            gyroTurn(TURN_SPEED, 90.0, 2.0);
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
 
             raiseArm();
 
             //Drive to platform
-            gyroDrive2(DRIVE_SPEED_SLOW, 72,90.0, true, false,5.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 95,-90.0, true, false,5.0);
 
             //Release block onto platform
             unclamp();
 
             //Drive back to block
-            gyroDrive2(DRIVE_SPEED_SLOW, -100,90.0, true, false,5.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, -109,-90.0, true, false,5.0);
+
+            //Turn to face the block
+            sleep(1000);
+            gyroTurn(TURN_SPEED, 0.0, 2.0);
+
+            //Drive forward to the block
+            gyroDriveCenter(0.5, -2, 0.0, false, 1.5);
+            gyroDrive2(0.5, 15,0, false, false,2.0);
+
+
+            //Lower arm onto block
+            lowerLeftSideGrabber();
+            sleep(500);
+
+            //Drive backwards with block
+            gyroDrive2(DRIVE_SPEED_SLOW, -18,0, false, false,2.0);
+            gyroDriveCenter(0.5, 2, 0.0, false, 1.5);
+
+            //Drive up a little
+            gyroDrive2(DRIVE_SPEED_SLOW, 5.0, 0.0, false, false, 2.0);
+
+            //Turn to face the delivery area
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+
+            //Drive to delivery area
+            gyroDrive2(DRIVE_SPEED_SLOW, 110,-90.0, true, false,5.0);
+
+            //Let go of the block
+            raiseSideGrabbers();
+            sleep(1000);
+
+            //Drive back to park on the line
+            gyroDrive2(DRIVE_SPEED_SLOW, -25,-90.0, true, false,2.0);
+
+        }
+
+        //-----------
+        // R I G H T NOTDONE
+        //-----------
+        else if(stoneConfig.equals("Right")){
+
+            //Put the arm and claws in a ready position
+            raiseArm();
+            unclamp();
+            sleep(2000);
+
+            //Drive forward to the block
+            //gyroDriveDiagonal(DRIVE_SPEED_SLOW, 0.5, 32, -8.0,0, true, 3.0);
+
+            /*
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDriveCenter(0.5, 3, 0.0, false, 1.5);
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDriveCenter(0.5, 3, 0.0, false, 1.5);
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            gyroDriveCenter(0.5, 2.75, 0.0, false, 1.5);
+
+             */
+
+            /*
+            gyroDrive2(DRIVE_SPEED_SLOW, 15,0, true, false,2.0);
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 7,0, true, false,2.0);
+            gyroTurn(TURN_SPEED, 0.0, 2.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 15,0, true, false,2.0);
+
+             */
+            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            if(!gyroDriveCenter2(0.5, 11, 0.0, false, 4.0)){
+                double distanceLeft = 10 - (Math.abs(motor_encoderCenter.getCurrentPosition()) / ENCODER_COUNTS_PER_INCH);
+                gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+                if(!gyroDriveCenter2(0.5, distanceLeft, 0.0, false, 4.0)){
+                    distanceLeft = 10 - (Math.abs(motor_encoderCenter.getCurrentPosition()) / ENCODER_COUNTS_PER_INCH);
+                    gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+                    gyroDriveCenter2(0.5, distanceLeft, 0.0, false, 4.0);
+                }
+                else
+                    gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
+            }
+            else
+                gyroDrive2(DRIVE_SPEED_SLOW, 20,0, true, false,2.0);
+
+            //Lower arm onto block
+            lowerArm();
+            sleep(500);
+
+            //Drive backwards with block
+            gyroDrive2(DRIVE_SPEED_SLOW, -20,0, false, false,2.0);
+
+            //Grip the block
+            clamp();
+            sleep(1000);
+
+            //Raise arm up
+            raiseArmEvenHigher();
+
+            //Drive up a little
+            gyroDrive2(DRIVE_SPEED_SLOW, 9, 0.0, false, false, 2.0);
+
+            //Turn to face the delivery area
+            gyroTurn(TURN_SPEED, -90.0, 2.0);
+
+            raiseArm();
+
+            //Drive to platform
+            gyroDrive2(DRIVE_SPEED_SLOW, 72,-90.0, true, false,5.0);
+
+            //Release block onto platform
+            unclamp();
+
+            //Drive back to block
+            gyroDrive2(DRIVE_SPEED_SLOW, -102,-90.0, true, false,5.0);
             sleep(500);
 
             //Turn to face the block
@@ -351,134 +464,21 @@ public class AutonPIDBlue extends LinearOpMode {
             gyroDrive2(DRIVE_SPEED_SLOW, 10, 0.0, false, false, 2.0);
 
             //Turn to face the delivery area
-            gyroTurn(TURN_SPEED, 90.0, 2.0);
-
-            raiseArm();
-
-            //Drive to delivery area
-            gyroDrive2(DRIVE_SPEED_SLOW, 107,90.0, true, false,5.0);
-
-            //Let go of the block
-            lowerArm();
-            unclamp();
-            sleep(500);
-            raiseArm();
-
-            //Drive back to park on the line
-            gyroDrive2(DRIVE_SPEED_SLOW, -25,90.0, true, false,2.0);
-
-        }
-
-        //-----------
-        // R I G H T NOTDONE
-        //-----------
-        else if(stoneConfig.equals("Right")){
-
-            //Put the arm and claws in a ready position
-            raiseArm();
-            unclamp();
-            sleep(2000);
-
-            //Drive forward to the block
-            //gyroDriveDiagonal(DRIVE_SPEED_SLOW, 0.5, 32, -8.0,0, true, 3.0);
-
-            /*
-            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
-            gyroDriveCenter(0.5, 3, 0.0, false, 1.5);
-            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
-            gyroDriveCenter(0.5, 3, 0.0, false, 1.5);
-            gyroDrive2(DRIVE_SPEED_SLOW, 7,0, true, false,2.0);
-            gyroDriveCenter(0.5, 2.75, 0.0, false, 1.5);
-
-             */
-
-            /*
-            gyroDrive2(DRIVE_SPEED_SLOW, 15,0, true, false,2.0);
             gyroTurn(TURN_SPEED, -90.0, 2.0);
-            gyroDrive2(DRIVE_SPEED_SLOW, 7,0, true, false,2.0);
-            gyroTurn(TURN_SPEED, 0.0, 2.0);
-            gyroDrive2(DRIVE_SPEED_SLOW, 15,0, true, false,2.0);
-
-             */
-
-            gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
-            if(!driveCenter2(0.5, 11, 0.0, false, 4.0)){
-                double distanceLeft = 10 - (Math.abs(motor_encoderCenter.getCurrentPosition()) / ENCODER_COUNTS_PER_INCH);
-                gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
-                if(!driveCenter2(0.5, distanceLeft, 0.0, false, 4.0)){
-                    distanceLeft = 10 - (Math.abs(motor_encoderCenter.getCurrentPosition()) / ENCODER_COUNTS_PER_INCH);
-                    gyroDrive2(DRIVE_SPEED_SLOW, 7,0, true, false,2.0);
-                    driveCenter2(0.5, distanceLeft, 0.0, false, 4.0);
-                }
-                else
-                    gyroDrive2(DRIVE_SPEED_SLOW, 10,0, true, false,2.0);
-            }
-            else
-                gyroDrive2(DRIVE_SPEED_SLOW, 22,0, true, false,2.0);
-
-            //Lower arm onto block
-            lowerArm();
-            sleep(500);
-
-            //Drive backwards with block
-            gyroDrive2(DRIVE_SPEED_SLOW, -19,0, false, false,2.0);
-
-            //Grip the block
-            clamp();
-            sleep(1000);
-
-            //Raise arm up
-            raiseArmHigher();
-
-            //Drive up a little
-            gyroDrive2(DRIVE_SPEED_SLOW, 7.0, 0.0, false, false, 2.0);
-
-            //Turn to face the delivery area
-            gyroTurn(TURN_SPEED, 90.0, 2.0);
 
             raiseArm();
 
-            //Drive to platform
-            gyroDrive2(DRIVE_SPEED_SLOW, 95,90.0, true, false,5.0);
-
-            //Release block onto platform
-            unclamp();
-
-            //Drive back to block
-            gyroDrive2(DRIVE_SPEED_SLOW, -110,90.0, true, false,5.0);
-
-            //Turn to face the block
-            sleep(1000);
-            gyroTurn(TURN_SPEED, 0.0, 2.0);
-
-            //Drive forward to the block
-            gyroDriveCenter(0.5, 2, 0.0, false, 1.5);
-            gyroDrive2(0.5, 12,0, false, false,2.0);
-
-
-            //Lower arm onto block
-            lowerRightSideGrabber();
-            sleep(500);
-
-            //Drive backwards with block
-            gyroDrive2(DRIVE_SPEED_SLOW, -18,0, false, false,2.0);
-            gyroDriveCenter(0.5, -2, 0.0, false, 1.5);
-
-            //Drive up a little
-            gyroDrive2(DRIVE_SPEED_SLOW, 4.0, 0.0, false, false, 2.0);
-
-            //Turn to face the delivery area
-            gyroTurn(TURN_SPEED, 90.0, 2.0);
-
             //Drive to delivery area
-            gyroDrive2(DRIVE_SPEED_SLOW, 110,90.0, true, false,5.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, 105,-90.0, true, false,5.0);
 
             //Let go of the block
-            raiseSideGrabbers();
-            sleep(1000);
+            lowerArm();
+            unclamp();
+            sleep(500);
+            raiseArm();
 
             //Drive back to park on the line
-            gyroDrive2(DRIVE_SPEED_SLOW, -20,90.0, true, false,2.0);
+            gyroDrive2(DRIVE_SPEED_SLOW, -25,-90.0, true, false,2.0);
 
         }
 
@@ -523,11 +523,11 @@ public class AutonPIDBlue extends LinearOpMode {
     }
 
     private void lowerLeftSideGrabber(){
-        servo_platformLeft.setPosition(0.48);
+        servo_platformLeft.setPosition(0.45);
     }
 
     private void lowerRightSideGrabber(){
-        servo_platformRight.setPosition(0.55);
+        servo_platformRight.setPosition(0.52);
     }
 
     private void raiseSideGrabbers(){
@@ -546,6 +546,7 @@ public class AutonPIDBlue extends LinearOpMode {
 
         int     newTarget;
         double  max;
+        double  min;
         double  error;
         double  steer;
         double  leftSpeed;
@@ -683,6 +684,76 @@ public class AutonPIDBlue extends LinearOpMode {
             telemetry.update();
             resetTimeCounter += runtime.seconds();
         }
+    }
+
+    private boolean gyroDriveCenter2(double cSpeed,
+                                     double cDistance,
+                                     double angle,
+                                     boolean rampDown,
+                                     double timeoutS) {
+
+        int     newCenterTarget;
+        double  max;
+        double  error;
+        double  steer;
+        double  leftSpeed;
+        double  rightSpeed;
+        double centerSpeed;
+        double centerSteer;
+        double finishCoeff;
+        double rawSpeed;
+        double startPos;
+        boolean succeded = true;
+
+        // Ensure that the opmode is still active
+        if (opModeIsActive()) {
+
+            // Determine new target position, and pass to motor controller
+            newCenterTarget = (int)(motor_encoderCenter.getCurrentPosition() + cDistance*ENCODER_COUNTS_PER_INCH);
+            startPos = motor_encoderCenter.getCurrentPosition();
+
+            runtime.reset();
+            // start motion.
+            cSpeed = Range.clip(Math.abs(cSpeed), 0.0, 1.0);
+            //motor_left.setPower(speed * Math.signum(distance));
+            //motor_right.setPower(speed * Math.signum(distance));
+            //motor_center.setPower(cSpeed * Math.signum(cDistance));
+
+            // keep looping while we are still active, and BOTH motors are running.
+            while (opModeIsActive() &&
+                    (newCenterTarget > startPos ? motor_encoderCenter.getCurrentPosition() < newCenterTarget : motor_encoderCenter.getCurrentPosition() > newCenterTarget))
+            {
+
+                centerSpeed = cSpeed;
+
+                motor_center.setPower(centerSpeed * Math.signum(cDistance));
+
+                // Display drive status for the driver.
+                telemetry.addData("Path Status:", "In Motion");
+                telemetry.addData("Target",  "%7d:",      newCenterTarget);
+                telemetry.addData("Actual",  "%7d:",      motor_center.getCurrentPosition());
+                telemetry.addData("Speed",   "%5.2f:",  cSpeed);
+                telemetry.addData("Total Time Resetting so Far:", "%4.2f:", resetTimeCounter);
+                telemetry.update();
+
+                if(runtime.seconds() > timeoutS){
+                    succeded = false;
+                    break;
+                }
+
+            }
+
+            runtime.reset();
+            // Stop all motion;
+            motor_left.setPower(0);
+            motor_right.setPower(0);
+            motor_center.setPower(0);
+            telemetry.addData("Path Status:", "Motion Stopped");
+            telemetry.update();
+            resetTimeCounter += runtime.seconds();
+            return succeded;
+        }
+        return false;
     }
 
     private void gyroDriveDiagonal(double speed, double cSpeed,
@@ -867,65 +938,6 @@ public class AutonPIDBlue extends LinearOpMode {
             telemetry.update();
             resetTimeCounter += runtime.seconds();
         }
-    }
-
-    private boolean driveCenter2(double cSpeed,
-                                 double cDistance,
-                                 double angle,
-                                 boolean rampDown,
-                                 double timeoutS) {
-
-        int     newCenterTarget;
-        double centerSpeed;
-        double startPos;
-        boolean succeeded = true;
-
-        // Ensure that the opmode is still active
-        if (opModeIsActive()) {
-
-            // Determine new target position, and pass to motor controller
-            newCenterTarget = (int)(motor_encoderCenter.getCurrentPosition() + cDistance*ENCODER_COUNTS_PER_INCH);
-            startPos = motor_encoderCenter.getCurrentPosition();
-
-            runtime.reset();
-            // start motion.
-            cSpeed = Range.clip(Math.abs(cSpeed), 0.0, 1.0);
-
-            // keep looping while we are still active, and BOTH motors are running.
-            while (opModeIsActive() &&
-                    (newCenterTarget > startPos ? motor_encoderCenter.getCurrentPosition() < newCenterTarget : motor_encoderCenter.getCurrentPosition() > newCenterTarget))
-            {
-
-                centerSpeed = cSpeed;
-
-                motor_center.setPower(centerSpeed * Math.signum(cDistance));
-
-                // Display drive status for the driver.
-                telemetry.addData("Path Status:", "In Motion");
-                telemetry.addData("Target",  "%7d:",      newCenterTarget);
-                telemetry.addData("Actual",  "%7d:",      motor_center.getCurrentPosition());
-                telemetry.addData("Speed",   "%5.2f:",  cSpeed);
-                telemetry.addData("Total Time Resetting so Far:", "%4.2f:", resetTimeCounter);
-                telemetry.update();
-
-                if(runtime.seconds() > timeoutS){
-                    succeeded = false;
-                    break;
-                }
-
-            }
-
-            runtime.reset();
-            // Stop all motion;
-            motor_left.setPower(0);
-            motor_right.setPower(0);
-            motor_center.setPower(0);
-            telemetry.addData("Path Status:", "Motion Stopped");
-            telemetry.update();
-            resetTimeCounter += runtime.seconds();
-            return succeeded;
-        }
-        return false;
     }
 
 
