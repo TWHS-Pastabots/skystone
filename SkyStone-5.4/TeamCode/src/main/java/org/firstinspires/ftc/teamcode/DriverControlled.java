@@ -18,7 +18,7 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
 public class DriverControlled extends OpMode{
 
     /* Declare OpMode members. */
-    RobotHardwares robot = new RobotHardwares();
+    RobotHardware robot = new RobotHardware();
     ElapsedTime runTime= new ElapsedTime();
     double slowCon = 1.0;
     int pos = 0;
