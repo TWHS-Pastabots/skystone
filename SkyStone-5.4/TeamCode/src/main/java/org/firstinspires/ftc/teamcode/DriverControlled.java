@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.robot.Robot;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.hardware.TouchSensor;
+import java.awt.font.NumericShaper;
 
 @TeleOp(name="Driver", group="Linear OpMode")
 public class DriverControlled extends OpMode{
@@ -22,18 +23,18 @@ public class DriverControlled extends OpMode{
     ElapsedTime runTime= new ElapsedTime();
     double slowCon = 1.0;
     int pos = 0;
-    
+
     private DistanceSensor distance;
     private TouchSensor touch;
     DigitalChannel magnet;
-    
+
     //run once on init()
     @Override
     public void init() {
         robot.init(hardwareMap);
         robot.liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        
+
         distance = hardwareMap.get(DistanceSensor.class, "distance");
         Rev2mDistanceSensor sensorTimeOfFlight = (Rev2mDistanceSensor)distance;
         touch = hardwareMap.touchSensor.get("touch");
@@ -96,7 +97,7 @@ public class DriverControlled extends OpMode{
         if (G1a){
             slowCon = 1.0;
         }
-        
+
         // intake code
         if(gamepad1.right_bumper){
             robot.leftIn.setPower(-.7);
@@ -110,7 +111,7 @@ public class DriverControlled extends OpMode{
             robot.leftIn.setPower(0);
             robot.rightIn.setPower(0);
         }
-        
+
         // lift code
         if (G2up && magnet.getState())
         {
@@ -132,7 +133,7 @@ public class DriverControlled extends OpMode{
             telemetry.addData("Staying at:", robot.liftMotor.getCurrentPosition());
             telemetry.update();
         }
-        
+
         //servos
         if (G2rb)
         {
@@ -153,7 +154,7 @@ public class DriverControlled extends OpMode{
         {
             robot.claw.setPosition(0);
         }
-        
+
         if(G2right)
         {
             robot.clawT.setPosition(0);
