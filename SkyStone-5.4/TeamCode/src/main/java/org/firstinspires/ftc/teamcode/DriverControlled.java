@@ -1,4 +1,5 @@
 package org.firstinspires.ftc.teamcode;
+import com.qualcomm.ftccommon.SoundPlayer;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -57,7 +58,10 @@ public class DriverControlled extends OpMode{
     public void start() {
         runTime.reset();
         telemetry.addData("Run Time", "reset");
-    }
+        int gibbonSoundEffect = hardwareMap.appContext.getResources().getIdentifier("gibbon",
+                "raw", hardwareMap.appContext.getPackageName());
+        SoundPlayer.getInstance().startPlaying(hardwareMap.appContext, gibbonSoundEffect); //Okay now this is pure comedy
+    }                                                                                      //Sound effect will play ONCE upon pressing play
 
     // loop on start()
     @Override
