@@ -35,10 +35,10 @@ public class OdometryCalibration extends LinearOpMode {
     BNO055IMU imu;
 
 
-    final double PIVOT_SPEED = 0.5;
+    final double PIVOT_SPEED = 0.3;
 
     //The amount of encoder ticks for each inch the robot moves. THIS WILL CHANGE FOR EACH ROBOT AND NEEDS TO BE UPDATED HERE
-    final double COUNTS_PER_INCH = 2400;
+    final double COUNTS_PER_INCH = 1141.9488791276;
 
     ElapsedTime timer = new ElapsedTime();
 
@@ -60,10 +60,17 @@ public class OdometryCalibration extends LinearOpMode {
         encoder_right = hardwareMap.get(DcMotor.class, "right_rear");
         encoder_left = hardwareMap.get(DcMotor.class, "left_rear");
 
-        motor_fLeft.setDirection(DcMotor.Direction.REVERSE);
-        motor_fRight.setDirection(DcMotor.Direction.FORWARD);
-        motor_bLeft.setDirection(DcMotor.Direction.REVERSE);
-        motor_bRight.setDirection(DcMotor.Direction.FORWARD);
+        motor_fLeft.setDirection(DcMotor.Direction.FORWARD);
+        motor_fRight.setDirection(DcMotor.Direction.REVERSE);
+        motor_bLeft.setDirection(DcMotor.Direction.FORWARD);
+        motor_bRight.setDirection(DcMotor.Direction.REVERSE);
+
+        encoder_left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoder_right.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        sleep(1000);
+        encoder_left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        encoder_right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
 
         //Initialize IMU hardware map value
         imu = hardwareMap.get(BNO055IMU.class, "imu");
@@ -81,24 +88,30 @@ public class OdometryCalibration extends LinearOpMode {
         telemetry.clear();
 
         //Odometry System Calibration Init Complete
-        telemetry.addData("Odometry System Calibration Status", "Init Complete");
-        telemetry.update();
-
+        while(!isStarted()) {
+            telemetry.addData("Odometry System Calibration Status", "Init Complete");
+            telemetry.addData("IMU Angle", getZAngle());
+            telemetry.addData("Vertical Left Position", encoder_left.getCurrentPosition());
+            telemetry.addData("Vertical Right Position", encoder_right.getCurrentPosition());
+            telemetry.update();
+        }
         waitForStart();
 
         //Begin calibration (if robot is unable to pivot at these speeds, please adjust the constant at the top of the code
-        while(getZAngle() < 90 && opModeIsActive()){
+        while(getZAngle() < 120 && opModeIsActive()){
             motor_fRight.setPower(-PIVOT_SPEED);
             motor_bRight.setPower(-PIVOT_SPEED);
             motor_fLeft.setPower(PIVOT_SPEED);
             motor_bLeft.setPower(PIVOT_SPEED);
-            if(getZAngle() < 60) {
+            if(getZAngle() < 90) {
                 setPowerAll(-PIVOT_SPEED, -PIVOT_SPEED, PIVOT_SPEED, PIVOT_SPEED);
             }else{
                 setPowerAll(-PIVOT_SPEED/2, -PIVOT_SPEED/2, PIVOT_SPEED/2, PIVOT_SPEED/2);
             }
 
             telemetry.addData("IMU Angle", getZAngle());
+            telemetry.addData("Vertical Left Position", encoder_left.getCurrentPosition());
+            telemetry.addData("Vertical Right Position", encoder_right.getCurrentPosition());
             telemetry.update();
         }
 
@@ -139,7 +152,7 @@ public class OdometryCalibration extends LinearOpMode {
 
             //Display raw values
             telemetry.addData("IMU Angle", getZAngle());
-            telemetry.addData("Vertical Left Position", -encoder_left.getCurrentPosition());
+            telemetry.addData("Vertical Left Position", encoder_left.getCurrentPosition());
             telemetry.addData("Vertical Right Position", encoder_right.getCurrentPosition());
             telemetry.addData("Horizontal Position", encoder_horizontal.getCurrentPosition());
             telemetry.addData("Vertical Encoder Offset", verticalEncoderTickOffsetPerDegree);
