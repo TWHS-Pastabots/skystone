@@ -20,7 +20,7 @@ public class GlobalCoordinatePositionUpdateSample extends LinearOpMode {
     private DcMotor encoder_horizontal;
 
     //The amount of encoder ticks for each inch the robot moves. This will change for each robot and needs to be changed here
-    final double COUNTS_PER_INCH = 307.699557;
+    final double COUNTS_PER_INCH = 1141.9488791276;
 
     //Hardware map names for the encoder wheels. Again, these will change for each robot and need to be updated below
     String leftEncoderName = "left_rear", rightEncoderName ="right_rear", horizontalEncoderName = "lift_motor";
@@ -31,11 +31,13 @@ public class GlobalCoordinatePositionUpdateSample extends LinearOpMode {
         //Assign the hardware map to the odometry wheels
         encoder_left = hardwareMap.dcMotor.get(leftEncoderName);
         encoder_right = hardwareMap.dcMotor.get(rightEncoderName);
+        encoder_horizontal = hardwareMap.dcMotor.get(horizontalEncoderName);
         //horizontal = hardwareMap.dcMotor.get(horizontalEncoderName);
 
         //Reset the encoders
         encoder_right.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         encoder_left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoder_horizontal.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         //horizontal.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         /*
@@ -43,13 +45,14 @@ public class GlobalCoordinatePositionUpdateSample extends LinearOpMode {
         such that when the verticalLeft and verticalRight encoders spin forward, they return positive values, and when the
         horizontal encoder travels to the right, it returns positive value
         */
-        encoder_left.setDirection(DcMotorSimple.Direction.REVERSE);
+        encoder_left.setDirection(DcMotorSimple.Direction.FORWARD);
         encoder_right.setDirection(DcMotorSimple.Direction.REVERSE);
         //horizontal.setDirection(DcMotorSimple.Direction.REVERSE);
 
         //Set the mode of the odometry encoders to RUN_WITHOUT_ENCODER
         encoder_right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         encoder_left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        encoder_horizontal.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         //horizontal.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         //Init complete
