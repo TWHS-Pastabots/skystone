@@ -23,14 +23,18 @@ public class GlobalCoordinatePositionUpdateSample extends LinearOpMode {
     private DcMotor encoder_right;
     private DcMotor encoder_horizontal;
 
+
+
     private DistanceSensor distance;
     private TouchSensor touch;
-    DigitalChannel magnet;
+
 
     RobotHardware robot = new RobotHardware();
     ElapsedTime runTime= new ElapsedTime();
     double slowCon = 1.0;
     int pos = 0;
+
+
 
     //The amount of encoder ticks for each inch the robot moves. This will change for each robot and needs to be changed here
     final double COUNTS_PER_INCH = 1141.9488791276;
@@ -40,6 +44,7 @@ public class GlobalCoordinatePositionUpdateSample extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
+        robot.init(hardwareMap);
 
         //Assign the hardware map to the odometry wheels
         encoder_left = hardwareMap.dcMotor.get(leftEncoderName);
@@ -92,6 +97,8 @@ public class GlobalCoordinatePositionUpdateSample extends LinearOpMode {
             telemetry.addData("Thread Active", positionThread.isAlive());
             telemetry.update();
 
+            double accelCoeff;
+
             double G1leftStickX = -gamepad1.right_stick_x;
             double G1leftStickY = -gamepad1.right_stick_y;
             double turnCon = gamepad1.left_stick_x;
@@ -143,27 +150,6 @@ public class GlobalCoordinatePositionUpdateSample extends LinearOpMode {
                 robot.rightIn.setPower(0);
             }
 
-            // lift code
-            if (G2up && magnet.getState())
-            {
-                robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                robot.liftMotor.setPower(-0.5);
-                pos = robot.liftMotor.getCurrentPosition();
-            }
-            else if (G2down && !touch.isPressed())
-            {
-                robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                robot.liftMotor.setPower(0.2);
-                pos = robot.liftMotor.getCurrentPosition();
-            }
-            else
-            {
-                robot.liftMotor.setTargetPosition(pos);
-                robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robot.liftMotor.setPower(1);
-                telemetry.addData("Staying at:", robot.liftMotor.getCurrentPosition());
-                telemetry.update();
-            }
 
             //servos
             if (G2rb)
@@ -240,13 +226,6 @@ public class GlobalCoordinatePositionUpdateSample extends LinearOpMode {
             robot.leftRear.setPower(v3*slowCon );
             robot.rightRear.setPower(v4*slowCon );
 
-            telemetry.addData("Powers:", v1);
-            telemetry.addData("", v2);
-            telemetry.addData("", v3);
-            telemetry.addData("", v4);
-            telemetry.addData("Magnet:", magnet.getState());
-            //telemetry.addData("range", String.format("%.01f cm", distance.getDistance(DistanceUnit.CM)));
-            telemetry.update();
         }
 
         //Stop the thread

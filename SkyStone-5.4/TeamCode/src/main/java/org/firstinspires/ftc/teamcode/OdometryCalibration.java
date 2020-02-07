@@ -35,7 +35,7 @@ public class OdometryCalibration extends LinearOpMode {
     BNO055IMU imu;
 
 
-    final double PIVOT_SPEED = 0.3;
+    final double PIVOT_SPEED = 0.5;
 
     //The amount of encoder ticks for each inch the robot moves. THIS WILL CHANGE FOR EACH ROBOT AND NEEDS TO BE UPDATED HERE
     final double COUNTS_PER_INCH = 1141.9488791276;
