@@ -164,7 +164,7 @@ public class DriverControlled extends OpMode{
             robot.clawT.setPosition(1);
         }
 
-        if (G1leftStickY>.9){
+        /*if (G1leftStickY>.9){
             v1=1;
             v2=1;
             v3=1;
@@ -201,6 +201,8 @@ public class DriverControlled extends OpMode{
             v3=1;
             v4=-1;
         }
+
+         */
 
         robot.leftFront.setPower(v1*slowCon );
         robot.rightFront.setPower(v2*slowCon );
