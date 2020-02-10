@@ -9,7 +9,12 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import java.io.File;
 
-public class PositioningThread implements Runnable {
+/**
+ * Created by Cam and Matthew on 02092020.
+ * Updates position of robot based on orientation (calculated by IMU) and encoder values
+ */
+
+public class Positioning implements Runnable {
 
     private BNO055IMU imu;
 
@@ -55,7 +60,7 @@ public class PositioningThread implements Runnable {
      * @param threadSleepDelay delay in milliseconds for the GlobalPositionUpdate thread (50-75 milliseconds is suggested)
      */
 
-    public PositioningThread (DcMotor leftEnc, DcMotor rightEnc, DcMotor horizEnc, double COUNTS_PER_INCH, int threadSleepDelay, BNO055IMU imu){
+    public Positioning(DcMotor leftEnc, DcMotor rightEnc, DcMotor horizEnc, double COUNTS_PER_INCH, int threadSleepDelay, BNO055IMU imu){
         this.leftEnc    = leftEnc;
         this.rightEnc   = rightEnc;
         this.horizEnc   = horizEnc;
