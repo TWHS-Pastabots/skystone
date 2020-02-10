@@ -18,6 +18,7 @@ import java.io.File;
  * Odometry system calibration. Run this OpMode to generate the necessary constants to calculate the robot's global position on the field.
  * The Global Positioning Algorithm will not function and will throw an error if this program is not run first
  */
+
 @TeleOp(name = "Odometry System Calibration", group = "Calibration")
 public class OdometryCalibration extends LinearOpMode {
     //Drive motors
@@ -30,6 +31,7 @@ public class OdometryCalibration extends LinearOpMode {
     private DcMotor encoder_left;
     private DcMotor encoder_right;
     private DcMotor encoder_horizontal;
+
 
     //IMU Sensor
     BNO055IMU imu;
@@ -97,7 +99,9 @@ public class OdometryCalibration extends LinearOpMode {
         }
         waitForStart();
 
-        //Begin calibration (if robot is unable to pivot at these speeds, please adjust the constant at the top of the code
+        //Begin calibration (if robot is unable to pivot at these speeds, please adjust the constant at the top of the code\
+
+
         while(getZAngle() < 120 && opModeIsActive()){
             motor_fRight.setPower(-PIVOT_SPEED);
             motor_bRight.setPower(-PIVOT_SPEED);
