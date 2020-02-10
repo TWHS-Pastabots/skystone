@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -48,11 +50,16 @@ public class RobotHardware {
     public DcMotor leftIn = null;
     public DcMotor rightIn = null;
     public DcMotor liftMotor = null;
-    
+    public DcMotor leftEnc = null;
+    public DcMotor rightEnc = null;
+    public DcMotor horizEnc = null;
+
     public Servo leftH;
     public Servo rightH;
     public Servo claw;
     public Servo clawT;
+
+    public BNO055IMU imu = null;
 
     /* local OpMode members. */
     HardwareMap hwMap =  null;
@@ -70,9 +77,12 @@ public class RobotHardware {
 
         // Define and Initialize Motors
         leftFront = hwMap.get(DcMotor.class, "left_front");
+        horizEnc = hwMap.get(DcMotor.class, "left_front");
         leftRear = hwMap.get(DcMotor.class, "left_rear");
+        leftEnc = hwMap.get(DcMotor.class, "left_rear");
         rightFront = hwMap.get(DcMotor.class, "right_front");
         rightRear = hwMap.get(DcMotor.class, "right_rear");
+        rightEnc = hwMap.get(DcMotor.class, "right_rear");
         leftIn = hwMap.get(DcMotor.class, "left_intake");
         rightIn = hwMap.get(DcMotor.class, "right_intake");
         liftMotor = hwMap.get(DcMotor.class, "lift_motor");
@@ -80,6 +90,8 @@ public class RobotHardware {
         rightH = hwMap.get(Servo.class, "right_hook");
         claw = hwMap.get(Servo.class, "claw");
         clawT = hwMap.get(Servo.class, "claw_turn");
+        imu = hwMap.get(BNO055IMU.class, "imu");
+
         
         leftFront.setDirection(DcMotor.Direction.FORWARD); // Set to REVERSE if using AndyMark motors
         leftRear.setDirection(DcMotor.Direction.FORWARD);// Set to FORWARD if using AndyMark motors
@@ -116,5 +128,12 @@ public class RobotHardware {
         leftIn.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightIn.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode                = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled      = false;
+        imu.initialize(parameters);
     }
 }
