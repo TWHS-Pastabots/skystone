@@ -74,7 +74,7 @@ public class OdometryCalibration2 extends LinearOpMode {
             sumDiffRight += robot.rightEnc.getCurrentPosition() - startPosRight / (getAngle() - startAngle);
             sumDiffHoriz += robot.horizEnc.getCurrentPosition() - startPosHoriz / (getAngle() - startAngle);
         }
-        
+
         double verticalLeftEncoderTickOffsetPerDegree = sumDiffLeft / (double)TRIALS;
         double verticalRightEncoderTickOffsetPerDegree = sumDiffRight / (double)TRIALS;
         double horizontalEncoderTickOffsetPerDegree = sumDiffHoriz / (double)TRIALS;

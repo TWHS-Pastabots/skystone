@@ -27,9 +27,12 @@ public class PositioningThread implements Runnable {
 
     private double previousRightEncoderPosition = 0, previousLeftEncoderPosition = 0, previousHorizEncoderPosition = 0;
     private double verticalRightEncoderPosition = 0, verticalLeftEncoderPosition = 0, horizontalEncoderPosition = 0;
-    private double robotOrientationDegrees = 0;
-    private double previousRobotOrientationDegrees = 0;
-    private double orientationChange = 0;
+
+
+    private double orientation;
+    private double previousOrientation;
+    private double rawOrientationPrevious = 0.0;
+    private double rawOrientation;
 
 
 
@@ -55,20 +58,22 @@ public class PositioningThread implements Runnable {
      * @param threadSleepDelay delay in milliseconds for the GlobalPositionUpdate thread (50-75 milliseconds is suggested)
      */
 
-    public PositioningThread (DcMotor leftEnc, DcMotor rightEnc, DcMotor horizEnc, double COUNTS_PER_INCH, int threadSleepDelay, BNO055IMU imu){
+    public PositioningThread (DcMotor leftEnc, DcMotor rightEnc, DcMotor horizEnc, double COUNTS_PER_INCH, int threadSleepDelay, BNO055IMU imu, double startOrientation){
         this.leftEnc    = leftEnc;
         this.rightEnc   = rightEnc;
         this.horizEnc   = horizEnc;
         this.imu        = imu;
         sleepTime = threadSleepDelay;
 
-
+        this.orientation = startOrientation;
+        this.previousOrientation = startOrientation;
         this.verticalLeftEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(horizontalTickOffsetFile).trim());
         this.verticalRightEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(horizontalTickOffsetFile).trim());
         this.horizontalEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(horizontalTickOffsetFile).trim());
     }
 
     private void updatePosition () {
+        updateOrientation();
         verticalLeftEncoderPosition = leftEnc.getCurrentPosition();
         verticalRightEncoderPosition = rightEnc.getCurrentPosition();
         horizontalEncoderPosition = horizEnc.getCurrentPosition();
@@ -76,12 +81,27 @@ public class PositioningThread implements Runnable {
         double leftChange = verticalLeftEncoderPosition - previousLeftEncoderPosition;
         double rightChange = verticalRightEncoderPosition - previousRightEncoderPosition;
         double horizChange = horizontalEncoderPosition - previousHorizEncoderPosition;
+        double orientationChange = orientation - previousOrientation;
 
 
+        previousOrientation = orientation;
+    }
 
+    private void updateOrientation(){
+        rawOrientation = getAngle();
+        double rawOrientationChange = rawOrientation - rawOrientationPrevious;
 
+        if(rawOrientationChange < -180)
+            rawOrientationChange += 360;
+        else if(rawOrientationChange > 180)
+            rawOrientationChange -=360;
 
+        rawOrientationPrevious = rawOrientation;
+        orientation += rawOrientationChange;
+    }
 
+    private double getAngle(){
+       return -imu.getAngularOrientation().firstAngle;
     }
 
     @Override
