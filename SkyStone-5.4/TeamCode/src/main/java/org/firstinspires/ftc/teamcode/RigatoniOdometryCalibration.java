@@ -12,8 +12,14 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import java.io.File;
 import java.util.ArrayList;
 
+/**
+ * Created by Cam and Matthew on 02092020.
+ * Odometry system calibration. Run this OpMode to generate the necessary constants to calculate the robot's global position on the field.
+ * The Positioning Algorithm will not function and will throw an error if this program is not run first
+ */
+
 @TeleOp
-public class OdometryCalibration2 extends LinearOpMode {
+public class RigatoniOdometryCalibration extends LinearOpMode {
     RobotHardware robot = new RobotHardware();
     ElapsedTime runTime= new ElapsedTime();
     static final double POWER = 0.3;
