@@ -5,13 +5,24 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.ReadWriteFile;
+
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
+
+import java.io.File;
+import java.util.ArrayList;
 
 @TeleOp
 public class OdometryCalibration2 extends LinearOpMode {
     RobotHardware robot = new RobotHardware();
     ElapsedTime runTime= new ElapsedTime();
+    static final double POWER = 0.3;
+    static final int TRIALS = 10;
 
-
+    //Text files to write the values to. The files are stored in the robot controller under Internal Storage\FIRST\settings
+    File verticalLeftTickOffsetFile = AppUtil.getInstance().getSettingsFile("verticalLeftTickOffset.txt");
+    File verticalRightTickOffsetFile = AppUtil.getInstance().getSettingsFile("verticalRightTickOffset.txt");
+    File horizontalTickOffsetFile = AppUtil.getInstance().getSettingsFile("horizontalTickOffset.txt");
 
     @Override
     public void runOpMode() throws InterruptedException{
@@ -35,10 +46,50 @@ public class OdometryCalibration2 extends LinearOpMode {
 
         waitForStart();
 
+        double sumDiffLeft = 0.0;
+        double sumDiffRight = 0.0;
+        double sumDiffHoriz = 0.0;
+
+        for(int i = 0; i < TRIALS; i++){
+
+            double startPosLeft = robot.leftEnc.getCurrentPosition();
+            double startPosRight = robot.rightEnc.getCurrentPosition();
+            double startPosHoriz = robot.horizEnc.getCurrentPosition();
+            double startAngle = getAngle();
+
+            runTime.reset();
+            while(runTime.milliseconds() < 1000){
+                robot.leftFront.setPower(-POWER);
+                robot.rightFront.setPower(POWER);
+                robot.leftRear.setPower(-POWER);
+                robot.rightFront.setPower(POWER);
+            }
+            robot.leftFront.setPower(0);
+            robot.rightFront.setPower(0);
+            robot.leftRear.setPower(0);
+            robot.rightFront.setPower(0);
+            sleep(1000);
+
+            sumDiffLeft += (robot.leftEnc.getCurrentPosition() - startPosLeft) / (getAngle() - startAngle);
+            sumDiffRight += robot.rightEnc.getCurrentPosition() - startPosRight / (getAngle() - startAngle);
+            sumDiffHoriz += robot.horizEnc.getCurrentPosition() - startPosHoriz / (getAngle() - startAngle);
+        }
+
+        double verticalLeftEncoderTickOffsetPerDegree = sumDiffLeft / (double)TRIALS;
+        double verticalRightEncoderTickOffsetPerDegree = sumDiffRight / (double)TRIALS;
+        double horizontalEncoderTickOffsetPerDegree = sumDiffHoriz / (double)TRIALS;
+
+        //Write the constants to text files
+        ReadWriteFile.writeFile(verticalLeftTickOffsetFile, String.valueOf(verticalLeftEncoderTickOffsetPerDegree));
+        ReadWriteFile.writeFile(verticalRightTickOffsetFile, String.valueOf(verticalRightEncoderTickOffsetPerDegree));
+        ReadWriteFile.writeFile(horizontalTickOffsetFile, String.valueOf(horizontalEncoderTickOffsetPerDegree));
+
 
     }
 
     public double getAngle(){
-        return (-robot.imu.getAngularOrientation().firstAngle);
+        return (-robot.imu.getAngularOrientation().firstAngle < 0 ?
+                -robot.imu.getAngularOrientation().firstAngle + 360 :
+                -robot.imu.getAngularOrientation().firstAngle);
     }
 }
