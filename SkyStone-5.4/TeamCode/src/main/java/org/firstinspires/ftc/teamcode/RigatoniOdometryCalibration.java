@@ -23,7 +23,7 @@ public class RigatoniOdometryCalibration extends LinearOpMode {
     RobotHardware robot = new RobotHardware();
     ElapsedTime runTime= new ElapsedTime();
     static final double POWER = 0.3;
-    static final int TRIALS = 10;
+    static final int TRIALS = 3;
 
     //Text files to write the values to. The files are stored in the robot controller under Internal Storage\FIRST\settings
     File verticalLeftTickOffsetFile = AppUtil.getInstance().getSettingsFile("verticalLeftTickOffset.txt");
@@ -68,17 +68,17 @@ public class RigatoniOdometryCalibration extends LinearOpMode {
                 robot.leftFront.setPower(-POWER);
                 robot.rightFront.setPower(POWER);
                 robot.leftRear.setPower(-POWER);
-                robot.rightFront.setPower(POWER);
+                robot.rightRear.setPower(POWER);
             }
             robot.leftFront.setPower(0);
             robot.rightFront.setPower(0);
             robot.leftRear.setPower(0);
-            robot.rightFront.setPower(0);
+            robot.rightRear.setPower(0);
             sleep(1000);
 
             sumDiffLeft += (robot.leftEnc.getCurrentPosition() - startPosLeft) / (getAngle() - startAngle);
-            sumDiffRight += robot.rightEnc.getCurrentPosition() - startPosRight / (getAngle() - startAngle);
-            sumDiffHoriz += robot.horizEnc.getCurrentPosition() - startPosHoriz / (getAngle() - startAngle);
+            sumDiffRight += (robot.rightEnc.getCurrentPosition() - startPosRight) / (getAngle() - startAngle);
+            sumDiffHoriz += (robot.horizEnc.getCurrentPosition() - startPosHoriz) / (getAngle() - startAngle);
         }
 
         double verticalLeftEncoderTickOffsetPerDegree = sumDiffLeft / (double)TRIALS;
@@ -90,6 +90,12 @@ public class RigatoniOdometryCalibration extends LinearOpMode {
         ReadWriteFile.writeFile(verticalRightTickOffsetFile, String.valueOf(verticalRightEncoderTickOffsetPerDegree));
         ReadWriteFile.writeFile(horizontalTickOffsetFile, String.valueOf(horizontalEncoderTickOffsetPerDegree));
 
+        while(opModeIsActive()){
+            telemetry.addData("verticalLeftEncoderTickOffsetPerDegree", ""+verticalLeftEncoderTickOffsetPerDegree);
+            telemetry.addData("verticalRightEncoderTickOffsetPerDegree", ""+verticalRightEncoderTickOffsetPerDegree);
+            telemetry.addData("horizontalEncoderTickOffsetPerDegree", ""+horizontalEncoderTickOffsetPerDegree);
+            telemetry.update();
+        }
 
     }
 

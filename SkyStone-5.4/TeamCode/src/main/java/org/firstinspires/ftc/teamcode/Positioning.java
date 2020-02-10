@@ -9,7 +9,10 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import java.io.File;
 
-public class PositioningThread implements Runnable {
+public class Positioning implements Runnable {
+
+    //The amount of encoder ticks for each inch the robot moves.
+    final double COUNTS_PER_INCH = 1141.9488791276;
 
     private BNO055IMU imu;
 
@@ -33,6 +36,9 @@ public class PositioningThread implements Runnable {
     private double previousOrientation;
     private double rawOrientationPrevious = 0.0;
     private double rawOrientation;
+
+    private double xPos;
+    private double yPos;
 
 
 
@@ -58,17 +64,20 @@ public class PositioningThread implements Runnable {
      * @param threadSleepDelay delay in milliseconds for the GlobalPositionUpdate thread (50-75 milliseconds is suggested)
      */
 
-    public PositioningThread (DcMotor leftEnc, DcMotor rightEnc, DcMotor horizEnc, double COUNTS_PER_INCH, int threadSleepDelay, BNO055IMU imu, double startOrientation){
+    public Positioning(DcMotor leftEnc, DcMotor rightEnc, DcMotor horizEnc, int threadSleepDelay, BNO055IMU imu, double startOrientation, double startX, double startY){
         this.leftEnc    = leftEnc;
         this.rightEnc   = rightEnc;
         this.horizEnc   = horizEnc;
         this.imu        = imu;
         sleepTime = threadSleepDelay;
-
         this.orientation = startOrientation;
         this.previousOrientation = startOrientation;
-        this.verticalLeftEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(horizontalTickOffsetFile).trim());
-        this.verticalRightEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(horizontalTickOffsetFile).trim());
+        this.xPos = startX;
+        this.yPos = startY;
+
+
+        this.verticalLeftEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(verticalLeftTickOffestFile).trim());
+        this.verticalRightEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(verticalRightTickOffestFile).trim());
         this.horizontalEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(horizontalTickOffsetFile).trim());
     }
 
@@ -78,10 +87,12 @@ public class PositioningThread implements Runnable {
         verticalRightEncoderPosition = rightEnc.getCurrentPosition();
         horizontalEncoderPosition = horizEnc.getCurrentPosition();
 
-        double leftChange = verticalLeftEncoderPosition - previousLeftEncoderPosition;
-        double rightChange = verticalRightEncoderPosition - previousRightEncoderPosition;
-        double horizChange = horizontalEncoderPosition - previousHorizEncoderPosition;
         double orientationChange = orientation - previousOrientation;
+        double leftChange = (verticalLeftEncoderPosition - previousLeftEncoderPosition) - (orientationChange * verticalLeftEncoderTickOffsetPerDegree);
+        double rightChange = (verticalRightEncoderPosition - previousRightEncoderPosition) - (orientationChange * verticalRightEncoderTickOffsetPerDegree);
+        double horizontalChange = (horizontalEncoderPosition - previousHorizEncoderPosition) - (orientationChange * horizontalEncoderTickOffsetPerDegree);
+        double verticalChange = (leftChange + rightChange) / 2.0;
+
 
 
         previousOrientation = orientation;
