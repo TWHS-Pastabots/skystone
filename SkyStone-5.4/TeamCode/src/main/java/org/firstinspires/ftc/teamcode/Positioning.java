@@ -132,6 +132,10 @@ public class Positioning implements Runnable {
         return yPos;
     }
 
+    public double getOrientation(){
+        return orientation;
+    }
+
     @Override
     public void run() {
         while(isRunning){

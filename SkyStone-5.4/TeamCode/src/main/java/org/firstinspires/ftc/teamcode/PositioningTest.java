@@ -28,8 +28,19 @@ public class PositioningTest extends LinearOpMode {
         telemetry.update();
         waitForStart();
 
+        Positioning positioning = new Positioning(robot.leftEnc, robot.rightEnc, robot.horizEnc, 50, robot.imu, 0.0, 0, 0);
+        Thread positionThread = new Thread(positioning);
+        positionThread.start();
 
+        while(opModeIsActive()){
+            //Display Global (x, y, theta) coordinates
+            telemetry.addData("X Position", positioning.getX());
+            telemetry.addData("Y Position", positioning.getY());
+            telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
+            telemetry.addData("Thread Active", positionThread.isAlive());
+            telemetry.update();
+        }
 
-
+        positioning.stop();
     }
 }
