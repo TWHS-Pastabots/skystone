@@ -9,7 +9,13 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @Autonomous
 public class RunToCoordinateTest extends LinearOpMode {
 
-    private final double ANGLE_THRESHOLD = 1.0;
+    private final double ANGLE_THRESHOLD = 3.0;
+    private final double TURN_SPEED = 0.4;
+    private final double DRIVE_SPEED = 0.6;
+    private final double START_X = 0.0;
+    private final double START_Y = 0.0;
+    private final double START_ORIENTATION = 90.0;
+    private final int THREAD_SLEEP_DELAY = 50;
 
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime= new ElapsedTime();
@@ -31,23 +37,34 @@ public class RunToCoordinateTest extends LinearOpMode {
         telemetry.update();
         waitForStart();
 
-        Positioning positioning = new Positioning(robot.leftEnc, robot.rightEnc, robot.horizEnc, 50, robot.imu, 0.0, 0, 0);
+        Positioning positioning = new Positioning(robot.leftEnc, robot.rightEnc, robot.horizEnc, THREAD_SLEEP_DELAY, robot.imu, START_ORIENTATION, START_X, START_Y);
         Thread positionThread = new Thread(positioning);
         positionThread.start();
         telemetry.addData("Status", "Started Thread");
         telemetry.update();
 
-        turn(90, 0.3, positioning);
-        driveToPosition(10, 20, 0.4, 10, positioning);
+        //START OF DRIVING
+
+        driveToPosition(0.0, 40.0, DRIVE_SPEED, 1.0, 6.0, 10, positioning);
+        robot.leftIn.setPower(-.7);
+        robot.rightIn.setPower(-.7);
+        driveToPosition(4.0, 40.0, DRIVE_SPEED, 1.0, 6.0, 10, positioning);
+        sleep(1000);
+        robot.leftIn.setPower(0);
+        robot.rightIn.setPower(0);
+
+        telemetry.addData("Status:", "Finished Driving");
+        telemetry.update();
 
         positioning.stop();
     }
 
-    public void driveToPosition(double targetX, double targetY, double speed, double timeoutS, Positioning positioning){
+    public void driveToPosition(double targetX, double targetY, double speed, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
         double movementAngle;
+        double startOrientation = positioning.getOrientation();
 
         double fLeft;
         double fRight;
@@ -123,6 +140,28 @@ public class RunToCoordinateTest extends LinearOpMode {
                 rRight = -speed;
             }
 
+
+            //Ramp up the motor powers
+            if(rampUpTimeS > 0) {
+                fLeft = fLeft * (runTime.seconds() / rampUpTimeS);
+                fRight = fRight * (runTime.seconds() / rampUpTimeS);
+                rLeft = rLeft * (runTime.seconds() / rampUpTimeS);
+                rRight = rRight * (runTime.seconds() / rampUpTimeS);
+            }
+
+            //Ramp down the motor powers
+            if(distance < rampDownDistance){
+                double rampDownPercent = distance / rampDownDistance;
+                if(rampDownPercent < 0.2)
+                    rampDownPercent = 0.2;
+                fLeft = fLeft * (rampDownPercent);
+                fRight = fRight * (rampDownPercent);
+                rLeft = rLeft * (rampDownPercent);
+                rRight = rRight * (rampDownPercent);
+            }
+
+
+
             //Give powers to the wheels
             robot.leftFront.setPower(fLeft);
             robot.rightFront.setPower(fRight);
@@ -142,6 +181,9 @@ public class RunToCoordinateTest extends LinearOpMode {
         robot.leftRear.setPower(0);
         robot.rightRear.setPower(0);
 
+        //Turn to the orientation the move was started at
+        turn(startOrientation, TURN_SPEED, positioning);
+
     }
 
     private void turn(double targetAngle, double turnSpeed, Positioning positioning){
@@ -155,6 +197,16 @@ public class RunToCoordinateTest extends LinearOpMode {
             angleError = targetAngle - positioning.getOrientation();
             double signedTurnSpeed = turnSpeed * Math.signum(angleError);
 
+            //Ramp down
+            if(Math.abs(angleError) < 20)
+                signedTurnSpeed *= 0.25;
+            else if(Math.abs(angleError) < 40)
+                signedTurnSpeed *= 0.4;
+            else if(Math.abs(angleError) < 60)
+                signedTurnSpeed *= 0.5;
+            else if(Math.abs(angleError) < 80)
+                signedTurnSpeed *= 0.75;
+
             robot.leftFront.setPower(signedTurnSpeed);
             robot.rightFront.setPower(-signedTurnSpeed);
             robot.leftRear.setPower(signedTurnSpeed);
@@ -164,8 +216,12 @@ public class RunToCoordinateTest extends LinearOpMode {
                 successCounter++;
                 runTime.reset();
             }
-            else
+            else if(Math.abs(angleError) > ANGLE_THRESHOLD)
                 successCounter = 0;
+
+            telemetry.addData("Successes:", successCounter);
+            telemetry.addData("Error", Math.abs(angleError));
+            telemetry.update();
         }
 
         //Stop the robot

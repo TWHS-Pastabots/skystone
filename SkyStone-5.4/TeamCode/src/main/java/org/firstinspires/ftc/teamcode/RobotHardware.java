@@ -4,6 +4,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -63,7 +64,7 @@ public class RobotHardware {
 
         // Define and Initialize Motors
         leftFront = hwMap.get(DcMotor.class, "left_front");
-        horizEnc = hwMap.get(DcMotor.class, "left_front");
+        horizEnc = hwMap.get(DcMotor.class, "horiz_encoder");
         leftRear = hwMap.get(DcMotor.class, "left_rear");
         leftEnc = hwMap.get(DcMotor.class, "left_rear");
         rightFront = hwMap.get(DcMotor.class, "right_front");
@@ -86,6 +87,7 @@ public class RobotHardware {
         leftIn.setDirection(DcMotor.Direction.REVERSE);
         rightIn.setDirection(DcMotor.Direction.FORWARD);
         liftMotor.setDirection(DcMotor.Direction.FORWARD);
+        horizEnc.setDirection(DcMotor.Direction.REVERSE);
 
         // Set all motors to zero power
         leftFront.setPower(0);
@@ -106,6 +108,7 @@ public class RobotHardware {
         leftIn.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightIn.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        horizEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftRear.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
