@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.reference_code;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -12,6 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.RobotHardware;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
@@ -24,10 +25,14 @@ import org.openftc.easyopencv.OpenCvPipeline;
 
 import java.util.Stack;
 
+/**
+ * Iggy's original autonomous code for reference purposes.
+ * @author Iggy
+ */
 
 @Autonomous(name="Skystone-Gyro-Blue", group = "BlueAuton")
 public class AutoSkystoneGyroBlue extends LinearOpMode {
-    RobotHardwares robot = new RobotHardwares();
+    RobotHardware robot = new RobotHardware();
     private BNO055IMU imu;
     private DistanceSensor color;
     private ElapsedTime runtime = new ElapsedTime();
