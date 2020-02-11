@@ -2,11 +2,15 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 /**
- * Created by Cam and Matthew on .
- * Example OpMode that runs the Positioning thread and accesses the (x, y, theta) coordinate values
+ * Created by Cam and Matthew on 02102020.
+ * Example OpMode that runs the Positioning thread and accesses the (x, y, theta) coordinate values.
+ *
+ * Acts as a test for the Positioning class.
  */
+
 
 public class PositioningTest extends LinearOpMode {
     private RobotHardware robot = new RobotHardware();
