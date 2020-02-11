@@ -146,9 +146,11 @@ public class RunToCoordinateTest extends LinearOpMode {
 
     private void turn(double targetAngle, double turnSpeed, Positioning positioning){
 
-        double angleError = targetAngle - positioning.getOrientation();
+        double angleError;
+        int successCounter = 0;
 
-        while(Math.abs(angleError) > ANGLE_THRESHOLD){
+        runTime.reset();
+        while(successCounter < 5){
 
             angleError = targetAngle - positioning.getOrientation();
             double signedTurnSpeed = turnSpeed * Math.signum(angleError);
@@ -157,6 +159,13 @@ public class RunToCoordinateTest extends LinearOpMode {
             robot.rightFront.setPower(-signedTurnSpeed);
             robot.leftRear.setPower(signedTurnSpeed);
             robot.rightRear.setPower(-signedTurnSpeed);
+
+            if(Math.abs(angleError) < ANGLE_THRESHOLD && runTime.milliseconds() > 50) {
+                successCounter++;
+                runTime.reset();
+            }
+            else
+                successCounter = 0;
         }
 
         //Stop the robot
