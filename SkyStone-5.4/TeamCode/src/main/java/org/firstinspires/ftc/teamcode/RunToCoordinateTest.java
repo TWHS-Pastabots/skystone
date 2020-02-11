@@ -9,6 +9,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 @Autonomous
 public class RunToCoordinateTest extends LinearOpMode {
 
+    private final double ANGLE_THRESHOLD = 1.0;
+
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime= new ElapsedTime();
 
@@ -35,14 +37,13 @@ public class RunToCoordinateTest extends LinearOpMode {
         telemetry.addData("Status", "Started Thread");
         telemetry.update();
 
+        turn(90, 0.3, positioning);
         driveToPosition(10, 20, 0.4, 10, positioning);
 
         positioning.stop();
     }
 
     public void driveToPosition(double targetX, double targetY, double speed, double timeoutS, Positioning positioning){
-        telemetry.addData("Status", "Begun Drive Method");
-        telemetry.update();
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
@@ -143,6 +144,28 @@ public class RunToCoordinateTest extends LinearOpMode {
 
     }
 
+    private void turn(double targetAngle, double turnSpeed, Positioning positioning){
+
+        double angleError = targetAngle - positioning.getOrientation();
+
+        while(Math.abs(angleError) > ANGLE_THRESHOLD){
+
+            angleError = targetAngle - positioning.getOrientation();
+            double signedTurnSpeed = turnSpeed * Math.signum(angleError);
+
+            robot.leftFront.setPower(signedTurnSpeed);
+            robot.rightFront.setPower(-signedTurnSpeed);
+            robot.leftRear.setPower(signedTurnSpeed);
+            robot.rightRear.setPower(-signedTurnSpeed);
+        }
+
+        //Stop the robot
+        robot.leftFront.setPower(0);
+        robot.rightFront.setPower(0);
+        robot.leftRear.setPower(0);
+        robot.rightRear.setPower(0);
+    }
+
     private double calcOtherPower(double firstPower, double firstAngleDegrees, double otherAngleDegrees, double finalAngleDegrees ){
         double th1 = Math.toRadians(firstAngleDegrees);
         double th2 = Math.toRadians(otherAngleDegrees);
@@ -151,5 +174,7 @@ public class RunToCoordinateTest extends LinearOpMode {
         //Calculate the power using a formula that was derived using vector addition
         return ( (firstPower * Math.cos(th1) * Math.tan(thf)) - (firstPower * Math.sin(th1)) ) / ( Math.sin(th2) - (Math.cos(th2) * Math.tan(thf)) );
     }
+
+
 
 }
