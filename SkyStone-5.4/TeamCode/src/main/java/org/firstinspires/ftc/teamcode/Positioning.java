@@ -12,36 +12,33 @@ import java.io.File;
 public class Positioning implements Runnable {
 
     //The amount of encoder ticks for each inch the robot moves.
-    final double COUNTS_PER_INCH = 1141.9488791276;
+    private final double COUNTS_PER_INCH = 1141.9488791276;
 
+    //Motors and inertial measurement unit
     private BNO055IMU imu;
-
     private DcMotor leftEnc;
     private DcMotor rightEnc;
     private DcMotor horizEnc;
 
-    private double previousVerticalLeftEncoderTickOffsetPerDegree;
-    private double reviousVerticalRightEncoderTickOffsetPerDegree;
-    private double previousHorizontalEncoderTickOffsetPerDegree;
-
+    //Tick offsets for each encoder for turning
     private double verticalLeftEncoderTickOffsetPerDegree;
     private double verticalRightEncoderTickOffsetPerDegree;
     private double horizontalEncoderTickOffsetPerDegree;
 
+    //Positions of the encoders
     private double previousRightEncoderPosition = 0, previousLeftEncoderPosition = 0, previousHorizEncoderPosition = 0;
     private double verticalRightEncoderPosition = 0, verticalLeftEncoderPosition = 0, horizontalEncoderPosition = 0;
 
-
+    //Values for calculating orientation
     private double orientation;
     private double previousOrientation;
     private double rawOrientationPrevious = 0.0;
-    private double rawOrientation;
 
+    //The coordinates of the robot on the field
     private double xPos;
     private double yPos;
 
-
-
+    //Files used for retrieving the tick offsets
     private File horizontalTickOffsetFile = AppUtil.getInstance().getSettingsFile("horizontalTickOffset.txt");
     private File verticalLeftTickOffestFile = AppUtil.getInstance().getSettingsFile("verticalLeftTickOffset.txt");
     private File verticalRightTickOffestFile = AppUtil.getInstance().getSettingsFile("verticalRightTickOffset.txt");
@@ -49,21 +46,16 @@ public class Positioning implements Runnable {
     //Thead run condition
     private boolean isRunning = true;
 
-
-
-
+    //Interval between each run of the thread
     private int sleepTime;
-
-    RobotHardware robot = new RobotHardware();
-
+    
     /**
-     * Constructor for GlobalCoordinatePosition Thread
+     * Constructor for Positioning Thread
      * @param leftEnc left odometry encoder, facing the vertical direction
      * @param rightEnc right odometry encoder, facing the vertical direction
      * @param horizEnc horizontal odometry encoder, perpendicular to the other two odometry encoder wheels
-     * @param threadSleepDelay delay in milliseconds for the GlobalPositionUpdate thread (50-75 milliseconds is suggested)
+     * @param threadSleepDelay delay in milliseconds for the Positioning thread (50-75 milliseconds is suggested)
      */
-
     public Positioning(DcMotor leftEnc, DcMotor rightEnc, DcMotor horizEnc, int threadSleepDelay, BNO055IMU imu, double startOrientation, double startX, double startY){
         this.leftEnc    = leftEnc;
         this.rightEnc   = rightEnc;
@@ -81,25 +73,37 @@ public class Positioning implements Runnable {
         this.horizontalEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(horizontalTickOffsetFile).trim());
     }
 
+    //Updates the x and y positions of the robot
     private void updatePosition () {
+        //Find the current values for the encoders and orientation
         updateOrientation();
         verticalLeftEncoderPosition = leftEnc.getCurrentPosition();
         verticalRightEncoderPosition = rightEnc.getCurrentPosition();
         horizontalEncoderPosition = horizEnc.getCurrentPosition();
 
+        //Calculate the changes in each encoder as well as the orientation
         double orientationChange = orientation - previousOrientation;
         double leftChange = (verticalLeftEncoderPosition - previousLeftEncoderPosition) - (orientationChange * verticalLeftEncoderTickOffsetPerDegree);
         double rightChange = (verticalRightEncoderPosition - previousRightEncoderPosition) - (orientationChange * verticalRightEncoderTickOffsetPerDegree);
         double horizontalChange = (horizontalEncoderPosition - previousHorizEncoderPosition) - (orientationChange * horizontalEncoderTickOffsetPerDegree);
-        double verticalChange = (leftChange + rightChange) / 2.0;
+        double h = horizontalChange;
+        double v = (leftChange + rightChange) / 2.0;
+        double orientationRadians = Math.toRadians(orientation);
 
+        //Calculate and update the position
+        xPos += (v*Math.sin(orientationRadians) + h*Math.cos(orientationRadians)) / COUNTS_PER_INCH;
+        yPos += (v*Math.cos(orientationRadians) - h*Math.sin(orientationRadians)) / COUNTS_PER_INCH;
 
-
+        //Set up each of the previous values to be ready for the next iteration
+        previousLeftEncoderPosition = verticalLeftEncoderPosition;
+        previousRightEncoderPosition = verticalRightEncoderPosition;
+        previousHorizEncoderPosition = horizontalEncoderPosition;
         previousOrientation = orientation;
     }
 
+    //Updates the orientation of the robot based on the change in the raw imu values and the given initial orientation
     private void updateOrientation(){
-        rawOrientation = getAngle();
+        double rawOrientation = getAngle();
         double rawOrientationChange = rawOrientation - rawOrientationPrevious;
 
         if(rawOrientationChange < -180)
@@ -111,13 +115,33 @@ public class Positioning implements Runnable {
         orientation += rawOrientationChange;
     }
 
+    //Returns the raw angle provided by the imu, and flips it so negative is left
     private double getAngle(){
-       return -imu.getAngularOrientation().firstAngle;
+        return -imu.getAngularOrientation().firstAngle;
+    }
+
+    public void stop(){
+        isRunning = false;
+    }
+
+    public double getxPos(){
+        return xPos;
+    }
+
+    public double getyPos(){
+        return yPos;
     }
 
     @Override
     public void run() {
-
+        while(isRunning){
+            updatePosition();
+            try {
+                Thread.sleep(sleepTime);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 
