@@ -34,7 +34,7 @@ public class Positioning implements Runnable {
     private double previousOrientation;
     private double rawOrientationPrevious = 0.0;
 
-    //The coordinates of the robot on the field
+    //The coordinates of the robot on the field, in inches
     private double xPos;
     private double yPos;
 
@@ -48,7 +48,7 @@ public class Positioning implements Runnable {
 
     //Interval between each run of the thread
     private int sleepTime;
-    
+
     /**
      * Constructor for Positioning Thread
      * @param leftEnc left odometry encoder, facing the vertical direction
@@ -124,11 +124,11 @@ public class Positioning implements Runnable {
         isRunning = false;
     }
 
-    public double getxPos(){
+    public double getX(){
         return xPos;
     }
 
-    public double getyPos(){
+    public double getY(){
         return yPos;
     }
 
