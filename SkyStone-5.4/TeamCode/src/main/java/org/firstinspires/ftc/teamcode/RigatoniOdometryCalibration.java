@@ -65,20 +65,33 @@ public class RigatoniOdometryCalibration extends LinearOpMode {
 
             runTime.reset();
             while(runTime.milliseconds() < 1000){
-                robot.leftFront.setPower(-POWER);
-                robot.rightFront.setPower(POWER);
-                robot.leftRear.setPower(-POWER);
-                robot.rightRear.setPower(POWER);
+                robot.leftFront.setPower(POWER);
+                robot.rightFront.setPower(-POWER);
+                robot.leftRear.setPower(POWER);
+                robot.rightRear.setPower(-POWER);
             }
             robot.leftFront.setPower(0);
             robot.rightFront.setPower(0);
             robot.leftRear.setPower(0);
             robot.rightRear.setPower(0);
+            sleep(250);
+
+            telemetry.addData("IMU Angle", getAngle());
+            telemetry.addData("Vertical Left Position", robot.leftEnc.getCurrentPosition());
+            telemetry.addData("Vertical Right Position", robot.rightEnc.getCurrentPosition());
+            telemetry.update();
+
             sleep(1000);
 
-            sumDiffLeft += (robot.leftEnc.getCurrentPosition() - startPosLeft) / (getAngle() - startAngle);
-            sumDiffRight += (robot.rightEnc.getCurrentPosition() - startPosRight) / (getAngle() - startAngle);
-            sumDiffHoriz += (robot.horizEnc.getCurrentPosition() - startPosHoriz) / (getAngle() - startAngle);
+            double angleChange = getAngle() - startAngle;
+            if(angleChange < -180)
+                angleChange += 360;
+            else if(angleChange > 180)
+                angleChange -=360;
+
+            sumDiffLeft += (robot.leftEnc.getCurrentPosition() - startPosLeft) / angleChange;
+            sumDiffRight += (robot.rightEnc.getCurrentPosition() - startPosRight) / angleChange;
+            sumDiffHoriz += (robot.horizEnc.getCurrentPosition() - startPosHoriz) / angleChange;
         }
 
         double verticalLeftEncoderTickOffsetPerDegree = sumDiffLeft / (double)TRIALS;
