@@ -17,7 +17,7 @@ import java.io.File;
 public class Positioning implements Runnable {
 
     //The amount of encoder ticks for each inch the robot moves.
-    private final double COUNTS_PER_INCH = 1141.9488791276;
+    private final double COUNTS_PER_INCH = 1084.85144; //1141.9488791276
 
     //Motors and inertial measurement unit
     private BNO055IMU imu;

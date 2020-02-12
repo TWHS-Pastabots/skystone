@@ -25,7 +25,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     private final double ANGLE_THRESHOLD = 3.0;
     private final double TURN_SPEED = 0.4;
-    private final double DRIVE_SPEED = 0.6;
+    private final double DRIVE_SPEED = 0.4;
     private final double START_X = 0.0;
     private final double START_Y = 0.0;
     private final double START_ORIENTATION = 90.0;
@@ -33,14 +33,11 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime= new ElapsedTime();
-    private Log logWriter = new Log("actionLog.txt", true);
 
 
     @Override
     public void runOpMode() throws InterruptedException {
         robot.init(hardwareMap);
-
-        logWriter.addData("Start of Action Log");
 
         robot.leftEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rightEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -63,10 +60,10 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         //START OF DRIVING
 
-        driveToPosition(0.0, 40.0, DRIVE_SPEED, 1.0, 6.0, 10, positioning);
+        driveToPosition(0.0, 35.0, DRIVE_SPEED, 1.0, 6.0, 10, positioning);
         robot.leftIn.setPower(-.7);
         robot.rightIn.setPower(-.7);
-        driveToPosition(4.0, 40.0, DRIVE_SPEED, 1.0, 6.0, 10, positioning);
+        driveToPosition(4.0, 35.0, DRIVE_SPEED, 0.5, 2.0, 10, positioning);
         sleep(1000);
         robot.leftIn.setPower(0);
         robot.rightIn.setPower(0);
@@ -88,9 +85,10 @@ public class RunToCoordinateTest extends LinearOpMode  {
         double fRight;
         double rLeft;
         double rRight;
+        int successCounter = 0;
 
         runTime.reset();
-        while(runTime.seconds() < timeoutS && distance > 1.0){
+        while(runTime.seconds() < timeoutS && distance > 0.5){
             xDistance = targetX - positioning.getX();
             yDistance = targetY - positioning.getY();
             distance = Math.hypot(xDistance, yDistance);
@@ -256,91 +254,6 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         //Calculate the power using a formula that was derived using vector addition
         return ( (firstPower * Math.cos(th1) * Math.tan(thf)) - (firstPower * Math.sin(th1)) ) / ( Math.sin(th2) - (Math.cos(th2) * Math.tan(thf)) );
-    }
-
-     class Log {
-        private static final String BASE_FOLDER_NAME = "FIRST";
-        private Writer fileWriter;
-        private String line;
-        private boolean logTime;
-        private long startTime;
-        private boolean disabled = false;
-        public Log(String filename, boolean logTime) {
-            if (logTime) startTime = System.nanoTime();
-            this.logTime = logTime;
-            String directoryPath = Environment.getExternalStorageDirectory().getPath()+"/"+BASE_FOLDER_NAME;
-            File directory = new File(directoryPath);
-            //noinspection ResultOfMethodCallIgnored
-            directory.mkdir();
-            try {
-                fileWriter = new FileWriter(directoryPath+"/"+filename+".csv");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        public boolean isDisabled() {
-            return disabled;
-        }
-
-        public void setDisabled(boolean disabled) {
-            this.disabled = disabled;
-        }
-
-        public void close() {
-            try {
-                fileWriter.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        public void update() {
-            if (disabled) return;
-            try {
-                if (logTime) {
-                    long timeDifference = System.nanoTime()-startTime;
-                    line = timeDifference/1E9+","+line;
-                }
-                fileWriter.write(line+"\n");
-                line = "";
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        public void addData(String data) {
-            if (disabled) return;
-            if (!line.equals("")) line += ",";
-            line += data;
-        }
-        public void addData(Object data) {
-            addData(data.toString());
-        }
-        public void addData(boolean data) {
-            addData(String.valueOf(data));
-        }
-        public void addData(byte data) {
-            addData(String.valueOf(data));
-        }
-        public void addData(char data) {
-            addData(String.valueOf(data));
-        }
-        public void addData(short data) {
-            addData(String.valueOf(data));
-        }
-        public void addData(int data) {
-            addData(String.valueOf(data));
-        }
-        public void addData(long data) {
-            addData(String.valueOf(data));
-        }
-        public void addData(float data) {
-            addData(String.valueOf(data));
-        }
-        public void addData(double data) {
-            addData(String.valueOf(data));
-        }
     }
 
 
