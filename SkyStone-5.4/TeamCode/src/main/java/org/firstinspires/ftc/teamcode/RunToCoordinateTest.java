@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import android.os.Environment;
 
@@ -14,11 +15,14 @@ import java.io.IOException;
 import java.io.Writer;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import java.io.IOException;
 
 import java.io.FileWriter;
 import java.io.IOException;
+
+import java.time.LocalTime;
 
 @Autonomous
 public class RunToCoordinateTest extends LinearOpMode  {
@@ -33,11 +37,16 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime= new ElapsedTime();
+    private ElapsedTime logTimer = new ElapsedTime();
 
+    private File actionLog = AppUtil.getInstance().getSettingsFile("actionLog.txt");
+    String log;
 
     @Override
     public void runOpMode() throws InterruptedException {
         robot.init(hardwareMap);
+
+        ReadWriteFile.writeFile(actionLog, "Log Initiated" );
 
         robot.leftEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rightEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -88,6 +97,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         int successCounter = 0;
 
         runTime.reset();
+        logTimer.reset();
         while(runTime.seconds() < timeoutS && distance > 0.5){
             xDistance = targetX - positioning.getX();
             yDistance = targetY - positioning.getY();
@@ -189,6 +199,11 @@ public class RunToCoordinateTest extends LinearOpMode  {
             telemetry.addData("Y Position", positioning.getY());
             telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
             telemetry.update();
+            if ( logTimer.milliseconds() > 100 ) {
+                log += "Runtime::" + getRuntime() + " X Pos, Y Pos, Orientation: " + positioning.getX()
+                        + ", " + positioning.getY() + ", " + positioning.getOrientation() + "\n";
+                logTimer.reset();
+            }
         }
 
         //Stop the robot
@@ -199,6 +214,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         //Turn to the orientation the move was started at
         turn(startOrientation, TURN_SPEED, positioning);
+
+        ReadWriteFile.writeFile(actionLog, log);
 
     }
 
