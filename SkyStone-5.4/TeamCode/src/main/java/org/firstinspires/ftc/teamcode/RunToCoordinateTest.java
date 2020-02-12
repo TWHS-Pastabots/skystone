@@ -2,43 +2,47 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
-import android.os.Environment;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
-
-import java.io.IOException;
-
-import java.io.FileWriter;
-import java.io.IOException;
-
-import java.time.LocalTime;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvInternalCamera;
+import org.openftc.easyopencv.OpenCvPipeline;
 
 @Autonomous
 public class RunToCoordinateTest extends LinearOpMode  {
 
     private final double ANGLE_THRESHOLD = 3.0;
-    private final double TURN_SPEED = 0.4;
-    private final double DRIVE_SPEED = 0.4;
+    private final double TURN_SPEED = 0.5;
+    private final double DRIVE_SPEED = 1.0;
     private final double START_X = 0.0;
     private final double START_Y = 0.0;
     private final double START_ORIENTATION = 90.0;
     private final int THREAD_SLEEP_DELAY = 50;
 
     private RobotHardware robot = new RobotHardware();
-    private ElapsedTime runTime= new ElapsedTime();
+    private ElapsedTime runTime = new ElapsedTime();
+    private ElapsedTime moveTimer = new ElapsedTime();
     private ElapsedTime logTimer = new ElapsedTime();
 
+    private OpenCvCamera phoneCam;
+    private RunToCoordinateTest.DetectorPipeline detectorPipeline;
+    private String stoneConfig;
+
+    private File actionLogInternal = new File("C:\\Users\\Matt\\Documents\\GitHub\\skystone\\SkyStone-5.4\\TeamCode\\src\\main\\java\\org\\firstinspires\\ftc\\teamcode\\actionLog.txt");
     private File actionLog = AppUtil.getInstance().getSettingsFile("actionLog.txt");
     String log;
 
@@ -56,6 +60,13 @@ public class RunToCoordinateTest extends LinearOpMode  {
         robot.rightEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         robot.horizEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        phoneCam = new OpenCvInternalCamera(OpenCvInternalCamera.CameraDirection.FRONT, cameraMonitorViewId);
+        phoneCam.openCameraDevice();
+        detectorPipeline = new DetectorPipeline();
+        phoneCam.setPipeline(detectorPipeline);
+        phoneCam.startStreaming(320, 240, OpenCvCameraRotation.SIDEWAYS_LEFT);
+
         //Init complete
         telemetry.addData("Status", "Init Complete");
         telemetry.update();
@@ -64,15 +75,21 @@ public class RunToCoordinateTest extends LinearOpMode  {
         Positioning positioning = new Positioning(robot.leftEnc, robot.rightEnc, robot.horizEnc, THREAD_SLEEP_DELAY, robot.imu, START_ORIENTATION, START_X, START_Y);
         Thread positionThread = new Thread(positioning);
         positionThread.start();
+
+        SensorThread sensors = new SensorThread();
+        Thread sensorThread = new Thread(sensors);
+        sensorThread.start();
+
         telemetry.addData("Status", "Started Thread");
         telemetry.update();
 
         //START OF DRIVING
 
-        driveToPosition(0.0, 35.0, DRIVE_SPEED, 1.0, 6.0, 10, positioning);
+        runTime.reset();
+        driveToPosition(0.0, 40.0, DRIVE_SPEED, 2.0, 12.0, 10, positioning);
         robot.leftIn.setPower(-.7);
         robot.rightIn.setPower(-.7);
-        driveToPosition(4.0, 35.0, DRIVE_SPEED, 0.5, 2.0, 10, positioning);
+        driveToPosition(4.0, 40.0, DRIVE_SPEED*0.6, 2, 5.0, 10, positioning);
         sleep(1000);
         robot.leftIn.setPower(0);
         robot.rightIn.setPower(0);
@@ -96,9 +113,9 @@ public class RunToCoordinateTest extends LinearOpMode  {
         double rRight;
         int successCounter = 0;
 
-        runTime.reset();
+        moveTimer.reset();
         logTimer.reset();
-        while(runTime.seconds() < timeoutS && distance > 0.5){
+        while(moveTimer.seconds() < timeoutS && distance > 0.5){
             xDistance = targetX - positioning.getX();
             yDistance = targetY - positioning.getY();
             distance = Math.hypot(xDistance, yDistance);
@@ -169,17 +186,20 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
             //Ramp up the motor powers
             if(rampUpTimeS > 0) {
-                fLeft = fLeft * (runTime.seconds() / rampUpTimeS);
-                fRight = fRight * (runTime.seconds() / rampUpTimeS);
-                rLeft = rLeft * (runTime.seconds() / rampUpTimeS);
-                rRight = rRight * (runTime.seconds() / rampUpTimeS);
+                double rampUpPercent = moveTimer.seconds() / rampUpTimeS;
+                if(rampUpPercent < 0.6);
+                    rampUpPercent = 0.6;
+                fLeft = fLeft * (rampUpPercent);
+                fRight = fRight * (rampUpPercent);
+                rLeft = rLeft * (rampUpPercent);
+                rRight = rRight * (rampUpPercent);
             }
 
             //Ramp down the motor powers
             if(distance < rampDownDistance){
                 double rampDownPercent = distance / rampDownDistance;
-                if(rampDownPercent < 0.2)
-                    rampDownPercent = 0.2;
+                if(rampDownPercent < 0.6)
+                    rampDownPercent = 0.6;
                 fLeft = fLeft * (rampDownPercent);
                 fRight = fRight * (rampDownPercent);
                 rLeft = rLeft * (rampDownPercent);
@@ -200,11 +220,15 @@ public class RunToCoordinateTest extends LinearOpMode  {
             telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
             telemetry.update();
             if ( logTimer.milliseconds() > 100 ) {
-                log += "Runtime::" + getRuntime() + " X Pos, Y Pos, Orientation: " + positioning.getX()
-                        + ", " + positioning.getY() + ", " + positioning.getOrientation() + "\n";
+                log += "Runtime::" + runTime.seconds() + "\n\t X Pos:: " + positioning.getX()
+                        + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n";
+
                 logTimer.reset();
             }
+
         }
+
+        log += "\n\n\n";
 
         //Stop the robot
         robot.leftFront.setPower(0);
@@ -224,7 +248,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         double angleError;
         int successCounter = 0;
 
-        runTime.reset();
+        moveTimer.reset();
         while(successCounter < 5){
 
             angleError = targetAngle - positioning.getOrientation();
@@ -245,9 +269,9 @@ public class RunToCoordinateTest extends LinearOpMode  {
             robot.leftRear.setPower(signedTurnSpeed);
             robot.rightRear.setPower(-signedTurnSpeed);
 
-            if(Math.abs(angleError) < ANGLE_THRESHOLD && runTime.milliseconds() > 50) {
+            if(Math.abs(angleError) < ANGLE_THRESHOLD && moveTimer.milliseconds() > 50) {
                 successCounter++;
-                runTime.reset();
+                moveTimer.reset();
             }
             else if(Math.abs(angleError) > ANGLE_THRESHOLD)
                 successCounter = 0;
@@ -273,6 +297,124 @@ public class RunToCoordinateTest extends LinearOpMode  {
         return ( (firstPower * Math.cos(th1) * Math.tan(thf)) - (firstPower * Math.sin(th1)) ) / ( Math.sin(th2) - (Math.cos(th2) * Math.tan(thf)) );
     }
 
+    private void writeToFile (String log, File f)  throws IOException {
+        FileWriter fr = new FileWriter(f);
+        telemetry.addData("Final Log", ReadWriteFile.readFile(actionLog));
+    }
+
+
+    class DetectorPipeline extends OpenCvPipeline
+    {
+        /*
+         * NOTE: if you wish to use additional Mat objects in your processing pipeline, it is
+         * highly recommended to declare them here as instance variables and re-use them for
+         * each invocation of processFrame(), rather than declaring them as new local variables
+         * each time through processFrame(). This removes the danger of causing a memory leak
+         * by forgetting to call mat.release(), and it also reduces memory pressure by not
+         * constantly allocating and freeing large chunks of memory.
+         */
+        private Mat mat0 = new Mat();
+        private Mat mat1 = new Mat();
+        private Mat mat2 = new Mat();
+
+        private boolean madeMats = false;
+
+        private Mat mask0;
+        private Mat mask1;
+        private Mat mask2;
+
+
+        private final Scalar BLACK = new Scalar(0,0,0);
+        private final Scalar WHITE = new Scalar(256, 256, 256);
+        private final int r = 10;
+        private final int cx0 = 75, cx1 = 140, cx2 = 220;// Width=320 Height=240
+        private final int cy0 = 175, cy1 = 175, cy2 = 175;
+
+        private String detectedPos;
+
+        @Override
+        public Mat processFrame(Mat input)
+        {
+            int h = input.height();
+            int w = input.width();
+            int t = input.type();
+            if(!madeMats){
+                mask0 = new Mat(h,w,t);
+                mask1 = new Mat(h,w,t);
+                mask2 = new Mat(h,w,t);
+                madeMats = true;
+            }
+
+            mask0.setTo(BLACK);
+            mask1.setTo(BLACK);
+            mask2.setTo(BLACK);
+
+            Imgproc.circle(mask0, new Point(cx0, cy0), r, WHITE, Core.FILLED);
+            Imgproc.circle(mask1, new Point(cx1, cy1), r, WHITE, Core.FILLED);
+            Imgproc.circle(mask2, new Point(cx2, cy2), r, WHITE, Core.FILLED);
+
+            Core.bitwise_and(mask0, input, mat0);
+            Core.bitwise_and(mask1, input, mat1);
+            Core.bitwise_and(mask2, input, mat2);
+
+
+            double sum0 = sum(Core.sumElems(mat0).val);
+            double sum1 = sum(Core.sumElems(mat1).val);
+            double sum2 = sum(Core.sumElems(mat2).val);
+
+            if(sum0 < sum1 && sum0 < sum2)
+                detectedPos = "Left";
+            else if(sum1 < sum0 && sum1 < sum2)
+                detectedPos = "Middle";
+            else if(sum2 < sum1 && sum2 < sum0)
+                detectedPos = "Right";
+
+
+            /*
+             * NOTE: to see how to get data from your pipeline to your OpMode as well as how
+             * to change which stage of the pipeline is rendered to the viewport when it is
+             * tapped, please see {@link PipelineStageSwitchingExample}
+             */
+
+            Imgproc.circle(input, new Point(cx0, cy0), r, WHITE, Core.FILLED);
+            Imgproc.circle(input, new Point(cx1, cy1), r, WHITE, Core.FILLED);
+            Imgproc.circle(input, new Point(cx2, cy2), r, WHITE, Core.FILLED);
+
+            return input;
+        }
+
+        public double sum(double[] arr){
+            double sum = 0.0;
+            for(int i = 0; i < arr.length; i++){
+                sum += arr[i];
+            }
+            return sum;
+        }
+
+        public String getDetectedPos(){
+            return  detectedPos;
+        }
+    }
+
+    public class SensorThread implements Runnable{
+
+        private boolean isRunning = true;
+        private boolean pushBlock = false;
+
+        public void stop(){
+            isRunning = false;
+        }
+
+         @Override
+         public void run(){
+            while(isRunning){
+                if(robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5 && !pushBlock)
+                    pushBlock = true;
+                if(pushBlock)
+                    robot.servo_blockPush.setPosition(0.0);
+            }
+         }
+    }
 
 
 }

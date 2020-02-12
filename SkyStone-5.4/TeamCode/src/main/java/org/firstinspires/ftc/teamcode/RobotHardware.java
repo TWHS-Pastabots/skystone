@@ -45,6 +45,9 @@ public class RobotHardware {
     public Servo rightH;
     public Servo claw;
     public Servo clawT;
+    public Servo servo_blockPush;
+
+    public DistanceSensor blockInSensor;
 
     public BNO055IMU imu = null;
 
@@ -78,6 +81,8 @@ public class RobotHardware {
         claw = hwMap.get(Servo.class, "claw");
         clawT = hwMap.get(Servo.class, "claw_turn");
         imu = hwMap.get(BNO055IMU.class, "imu");
+        blockInSensor = hwMap.get(DistanceSensor.class, "color");
+        servo_blockPush = hwMap.get(Servo.class, "servo_blockPush");
 
         
         leftFront.setDirection(DcMotor.Direction.FORWARD); // Set to REVERSE if using AndyMark motors
@@ -124,5 +129,7 @@ public class RobotHardware {
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.loggingEnabled      = false;
         imu.initialize(parameters);
+
+        servo_blockPush.setPosition(1.0);
     }
 }
