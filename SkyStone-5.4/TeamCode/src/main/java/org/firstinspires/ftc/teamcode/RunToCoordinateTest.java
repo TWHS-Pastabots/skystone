@@ -46,6 +46,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
     private File actionLog = AppUtil.getInstance().getSettingsFile("actionLog.txt");
     String log;
 
+    Runtime rt = Runtime.getRuntime();
+
     @Override
     public void runOpMode() throws InterruptedException {
         robot.init(hardwareMap);
@@ -98,6 +100,13 @@ public class RunToCoordinateTest extends LinearOpMode  {
         telemetry.update();
 
         positioning.stop();
+        try {
+            writeToFile();
+        }
+        catch ( IOException e ){
+
+        }
+
     }
 
     public void driveToPosition(double targetX, double targetY, double speed, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning){
@@ -297,9 +306,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
         return ( (firstPower * Math.cos(th1) * Math.tan(thf)) - (firstPower * Math.sin(th1)) ) / ( Math.sin(th2) - (Math.cos(th2) * Math.tan(thf)) );
     }
 
-    private void writeToFile (String log, File f)  throws IOException {
-        FileWriter fr = new FileWriter(f);
-        telemetry.addData("Final Log", ReadWriteFile.readFile(actionLog));
+    private void writeToFile ()  throws IOException {
+        Process pr = rt.exec("adb pull Storage\\FIRST\\settings /Users/quilicam/Documents/GitHub/SkystoneV2/SkyStone-5.4/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/actionLog.txt");
     }
 
 
