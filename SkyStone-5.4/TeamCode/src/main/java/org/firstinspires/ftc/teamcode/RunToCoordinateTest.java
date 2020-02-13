@@ -110,7 +110,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         positioning.stop();
         try {
-            writeToFile();
+            writeToFile(log, actionLog);
         }
         catch ( IOException e ){
 
@@ -331,7 +331,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         return ( (firstPower * Math.cos(th1) * Math.tan(thf)) - (firstPower * Math.sin(th1)) ) / ( Math.sin(th2) - (Math.cos(th2) * Math.tan(thf)) );
     }
 
-<<<<<<< HEAD
+
     public double getError(double targetAngle, Positioning positioning) {
 
         double robotError;
@@ -351,12 +351,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     private void writeToFile (String log, File f)  throws IOException {
         FileWriter fr = new FileWriter(f);
-        telemetry.addData("Final Log", ReadWriteFile.readFile(actionLog));
-=======
-    private void writeToFile ()  throws IOException {
-        Process pr = rt.exec("adb pull Storage\\FIRST\\settings /Users/quilicam/Documents/GitHub/SkystoneV2/SkyStone-5.4/TeamCode/src/main/java/org/firstinspires/ftc/teamcode/actionLog.txt");
->>>>>>> 0bd9c733759c0a6fa9f74d875a550208273d2971
-    }
+        telemetry.addData("Final Log", ReadWriteFile.readFile(actionLog))
+        ;}
 
 
     class DetectorPipeline extends OpenCvPipeline
