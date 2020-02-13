@@ -46,6 +46,11 @@ public class RunToCoordinateTest extends LinearOpMode  {
     private File actionLog = AppUtil.getInstance().getSettingsFile("actionLog.txt");
     String log;
 
+
+
+
+
+
     @Override
     public void runOpMode() throws InterruptedException {
         robot.init(hardwareMap);
@@ -98,6 +103,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         telemetry.update();
 
         positioning.stop();
+
     }
 
     public void driveToPosition(double targetX, double targetY, double speed, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning){
@@ -298,8 +304,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
     }
 
     private void writeToFile (String log, File f)  throws IOException {
-        FileWriter fr = new FileWriter(f);
-        telemetry.addData("Final Log", ReadWriteFile.readFile(actionLog));
+        Runtime rt = Runtime.getRuntime();
+        Process pr = rt.exec("adb pull /sdcard/com.qualcomm.ftcRobotcontroller.logcat C:\\FTC Code\\skystone\\SkyStone-5.4\\TeamCode\\src\\main\\java\\org\\firstinspires\\ftc\\teamcode\\actionLog.txt");
     }
 
 
