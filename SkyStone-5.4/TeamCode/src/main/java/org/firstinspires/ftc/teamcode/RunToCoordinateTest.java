@@ -43,6 +43,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime = new ElapsedTime();
     private ElapsedTime moveTimer = new ElapsedTime();
+    private ElapsedTime successTimer = new ElapsedTime();
     private ElapsedTime logTimer = new ElapsedTime();
 
     private OpenCvCamera phoneCam;
@@ -87,8 +88,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
         Thread positionThread = new Thread(positioning);
         positionThread.start();
 
-        SensorThread sensors = new SensorThread();
-        Thread sensorThread = new Thread(sensors);
+        SensorThread sensing = new SensorThread();
+        Thread sensorThread = new Thread(sensing);
         sensorThread.start();
 
         telemetry.addData("Status", "Started Thread");
@@ -97,10 +98,10 @@ public class RunToCoordinateTest extends LinearOpMode  {
         //START OF DRIVING
 
         runTime.reset();
-        driveToPosition(0.0, 40.0, DRIVE_SPEED, 2.0, 90, 12.0, 10, positioning);
+        driveToPosition(0.0, 40.0, DRIVE_SPEED, 2.0, 90, 12.0, 10, positioning, sensing);
         robot.leftIn.setPower(-.7);
         robot.rightIn.setPower(-.7);
-        driveToPosition(4.0, 40.0, DRIVE_SPEED*0.6, 2, 90, 5.0, 10, positioning);
+        driveToPosition(4.0, 40.0, DRIVE_SPEED*0.6, 2, 90, 5.0, 10, positioning, sensing);
         sleep(1000);
         robot.leftIn.setPower(0);
         robot.rightIn.setPower(0);
@@ -118,12 +119,11 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     }
 
-    public void driveToPosition(double targetX, double targetY, double speed, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning){
+    public void driveToPosition(double targetX, double targetY, double speed, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning, SensorThread sensing){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
         double movementAngle;
-        double startOrientation = positioning.getOrientation();
 
         double fLeft;
         double fRight;
@@ -142,7 +142,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
         ElapsedTime pidTimer = new ElapsedTime();
         moveTimer.reset();
         logTimer.reset();
-        while(moveTimer.seconds() < timeoutS && distance > 0.5){
+        successTimer.reset();
+        while(moveTimer.seconds() < timeoutS && successCounter < 5){
             xDistance = targetX - positioning.getX();
             yDistance = targetY - positioning.getY();
             distance = Math.hypot(xDistance, yDistance);
@@ -250,7 +251,16 @@ public class RunToCoordinateTest extends LinearOpMode  {
             robot.leftRear.setPower(rLeft);
             robot.rightRear.setPower(rRight);
 
+            //Check if robot is in the correct location
+            if(distance < 0.5 && successTimer.milliseconds() > 50){
+                successCounter++;
+                successTimer.reset();
+            }
+            else if(distance > 0.5)
+                successCounter = 0;
+
             //Display Global (x, y, theta) coordinates
+            telemetry.addData("Color Distance", sensing.getColorDistance());
             telemetry.addData("X Position", positioning.getX());
             telemetry.addData("Y Position", positioning.getY());
             telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
@@ -261,6 +271,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
                 logTimer.reset();
             }
+
+            //Set the time difference for the derivative
             dt = pidTimer.seconds();
 
         }
@@ -282,7 +294,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         double angleError;
         int successCounter = 0;
 
-        moveTimer.reset();
+        successTimer.reset();
         while(successCounter < 5){
 
             angleError = targetAngle - positioning.getOrientation();
@@ -303,9 +315,9 @@ public class RunToCoordinateTest extends LinearOpMode  {
             robot.leftRear.setPower(signedTurnSpeed);
             robot.rightRear.setPower(-signedTurnSpeed);
 
-            if(Math.abs(angleError) < ANGLE_THRESHOLD && moveTimer.milliseconds() > 50) {
+            if(Math.abs(angleError) < ANGLE_THRESHOLD && successTimer.milliseconds() > 50) {
                 successCounter++;
-                moveTimer.reset();
+                successTimer.reset();
             }
             else if(Math.abs(angleError) > ANGLE_THRESHOLD)
                 successCounter = 0;
@@ -351,8 +363,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     private void writeToFile (String log, File f)  throws IOException {
         FileWriter fr = new FileWriter(f);
-        telemetry.addData("Final Log", ReadWriteFile.readFile(actionLog))
-        ;}
+        telemetry.addData("Final Log", ReadWriteFile.readFile(actionLog));
+    }
 
 
     class DetectorPipeline extends OpenCvPipeline
@@ -455,6 +467,10 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         public void stop(){
             isRunning = false;
+        }
+
+        public double getColorDistance(){
+            return robot.blockInSensor.getDistance(DistanceUnit.INCH);
         }
 
          @Override
