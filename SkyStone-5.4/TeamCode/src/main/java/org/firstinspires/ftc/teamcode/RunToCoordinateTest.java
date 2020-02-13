@@ -4,12 +4,15 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.opencv.core.Core;
@@ -28,10 +31,14 @@ public class RunToCoordinateTest extends LinearOpMode  {
     private final double ANGLE_THRESHOLD = 3.0;
     private final double TURN_SPEED = 0.5;
     private final double DRIVE_SPEED = 1.0;
+    private final int THREAD_SLEEP_DELAY = 50;
+    static final double     Kp  = 0.15;
+    static final double     Ki  = 0.17;
+    static final double     Kd  = 0.01;
+
     private final double START_X = 0.0;
     private final double START_Y = 0.0;
     private final double START_ORIENTATION = 90.0;
-    private final int THREAD_SLEEP_DELAY = 50;
 
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime = new ElapsedTime();
@@ -41,6 +48,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
     private OpenCvCamera phoneCam;
     private RunToCoordinateTest.DetectorPipeline detectorPipeline;
     private String stoneConfig;
+
+    private double integral;
 
     private File actionLogInternal = new File("C:\\Users\\Matt\\Documents\\GitHub\\skystone\\SkyStone-5.4\\TeamCode\\src\\main\\java\\org\\firstinspires\\ftc\\teamcode\\actionLog.txt");
     private File actionLog = AppUtil.getInstance().getSettingsFile("actionLog.txt");
@@ -86,10 +95,10 @@ public class RunToCoordinateTest extends LinearOpMode  {
         //START OF DRIVING
 
         runTime.reset();
-        driveToPosition(0.0, 40.0, DRIVE_SPEED, 2.0, 12.0, 10, positioning);
+        driveToPosition(0.0, 40.0, DRIVE_SPEED, 2.0, 90, 12.0, 10, positioning);
         robot.leftIn.setPower(-.7);
         robot.rightIn.setPower(-.7);
-        driveToPosition(4.0, 40.0, DRIVE_SPEED*0.6, 2, 5.0, 10, positioning);
+        driveToPosition(4.0, 40.0, DRIVE_SPEED*0.6, 2, 90, 5.0, 10, positioning);
         sleep(1000);
         robot.leftIn.setPower(0);
         robot.rightIn.setPower(0);
@@ -100,7 +109,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         positioning.stop();
     }
 
-    public void driveToPosition(double targetX, double targetY, double speed, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning){
+    public void driveToPosition(double targetX, double targetY, double speed, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
@@ -111,8 +120,17 @@ public class RunToCoordinateTest extends LinearOpMode  {
         double fRight;
         double rLeft;
         double rRight;
+        double error;
+        double steer;
+        double previousError = 0;
         int successCounter = 0;
+        double  dt = 0;
+        integral = 0;
 
+        //Turn to the desired heading
+        turn(heading, TURN_SPEED, positioning);
+
+        ElapsedTime pidTimer = new ElapsedTime();
         moveTimer.reset();
         logTimer.reset();
         while(moveTimer.seconds() < timeoutS && distance > 0.5){
@@ -120,6 +138,11 @@ public class RunToCoordinateTest extends LinearOpMode  {
             yDistance = targetY - positioning.getY();
             distance = Math.hypot(xDistance, yDistance);
             movementAngle = Math.toDegrees(Math.atan2(xDistance, yDistance)) - positioning.getOrientation();
+
+            error = getError(heading, positioning);
+            pidTimer.reset();
+            steer = getSteerPID(error, previousError, dt, Kp, Ki, Kd);
+            previousError = error;
 
             //Convert the movement angle, which is relative to the y-axis to be relative to the x-axis for future calculations
             double angleXAxis = 90 - movementAngle;
@@ -206,7 +229,11 @@ public class RunToCoordinateTest extends LinearOpMode  {
                 rRight = rRight * (rampDownPercent);
             }
 
-
+            //Correct the heading
+            fLeft += steer;
+            rLeft += steer;
+            fRight -= steer;
+            rRight -= steer;
 
             //Give powers to the wheels
             robot.leftFront.setPower(fLeft);
@@ -225,6 +252,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
                 logTimer.reset();
             }
+            dt = pidTimer.seconds();
 
         }
 
@@ -235,9 +263,6 @@ public class RunToCoordinateTest extends LinearOpMode  {
         robot.rightFront.setPower(0);
         robot.leftRear.setPower(0);
         robot.rightRear.setPower(0);
-
-        //Turn to the orientation the move was started at
-        turn(startOrientation, TURN_SPEED, positioning);
 
         ReadWriteFile.writeFile(actionLog, log);
 
@@ -295,6 +320,23 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         //Calculate the power using a formula that was derived using vector addition
         return ( (firstPower * Math.cos(th1) * Math.tan(thf)) - (firstPower * Math.sin(th1)) ) / ( Math.sin(th2) - (Math.cos(th2) * Math.tan(thf)) );
+    }
+
+    public double getError(double targetAngle, Positioning positioning) {
+
+        double robotError;
+
+        // calculate error in -179 to +180 range  (
+        robotError = targetAngle - positioning.getOrientation();
+        while (robotError > 180)  robotError -= 360;
+        while (robotError <= -180) robotError += 360;
+        return robotError;
+    }
+
+    public double getSteerPID(double error, double previousError, double dt, double Kp, double Ki, double Kd) {
+        integral = integral + (error * dt);
+        double derivative = (error - previousError) / dt;
+        return Range.clip((error * Kp) + (Ki * integral) + (Kd * derivative), -1, 1);
     }
 
     private void writeToFile (String log, File f)  throws IOException {
