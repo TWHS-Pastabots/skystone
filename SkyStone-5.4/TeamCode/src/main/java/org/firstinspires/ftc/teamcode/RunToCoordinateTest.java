@@ -33,8 +33,9 @@ public class RunToCoordinateTest extends LinearOpMode  {
     private final double TURN_SPEED = 0.5;
     private final double DRIVE_SPEED = 1;
     private final int THREAD_SLEEP_DELAY = 50;
-    static final double     Kp  = 0.005;
-    static final double     Ki  = 0.005;
+    private final double MINIMUM_POWER = 0.2;
+    static final double     Kp  = 0.002;
+    static final double     Ki  = 0.002;
     static final double     Kd  = 0.000;
 
     private final double START_X = 31.0;
@@ -152,6 +153,9 @@ public class RunToCoordinateTest extends LinearOpMode  {
         double error;
         double steer;
         double previousError = 0;
+        double previousDistance = distance;
+        double velocity;
+        boolean isRampingDown = false;
         int successCounter = 0;
         double  dt = 0;
         integral = 0;
@@ -168,6 +172,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
             yDistance = targetY - positioning.getY();
             distance = Math.hypot(xDistance, yDistance);
             movementAngle = Math.toDegrees(Math.atan2(xDistance, yDistance)) - positioning.getOrientation();
+            velocity = (distance - previousDistance) / dt; //Calculated in inches/second
 
             error = getError(heading, positioning);
             pidTimer.reset();
@@ -247,8 +252,44 @@ public class RunToCoordinateTest extends LinearOpMode  {
                 rLeft = rLeft * (rampUpPercent);
                 rRight = rRight * (rampUpPercent);
             }
+            else if(velocity > distance)
+                isRampingDown = true;
 
             //Ramp down the motor powers
+            if(isRampingDown){
+                fLeft = fLeft * (0.2);
+                fRight = fRight * (0.2);
+                rLeft = rLeft * (0.2);
+                rRight = rRight * (0.2);
+            }
+
+            //Provide steer to the motors based off the PID
+            fLeft += steer;
+            rLeft += steer;
+            fRight -= steer;
+            rRight -= steer;
+
+            //Make sure there is a minimum power being provided to the motors during a ramp down or up
+            double minPower = Math.min(Math.min(fLeft, fRight), Math.min(rLeft, rRight));
+            if(minPower < MINIMUM_POWER && (isRampingDown || rampUpTimeS > moveTimer.seconds()) ){
+                double powerMultiplier = MINIMUM_POWER / minPower;
+                fLeft = fLeft * (powerMultiplier);
+                fRight = fRight * (powerMultiplier);
+                rLeft = rLeft * (powerMultiplier);
+                rRight = rRight * (powerMultiplier);
+            }
+
+            //Make sure no motor is trying to go too fast
+            double maxPower = Math.max(Math.max(fLeft, fRight), Math.max(rLeft, rRight));
+            if(maxPower > 1){
+                fLeft = fLeft / (maxPower);
+                fRight = fRight / (maxPower);
+                rLeft = rLeft / (maxPower);
+                rRight = rRight / (maxPower);
+            }
+
+            //Ramp down the motor powers
+            /*
             if(distance < rampDownDistance){
                 double rampDownPercent = distance / rampDownDistance;
                 if(rampDownPercent < 0.3)
@@ -258,13 +299,6 @@ public class RunToCoordinateTest extends LinearOpMode  {
                 rLeft = rLeft * (rampDownPercent);
                 rRight = rRight * (rampDownPercent);
             }
-
-            //Correct the heading
-            /*
-            fLeft += steer;
-            rLeft += steer;
-            fRight -= steer;
-            rRight -= steer;
 
              */
 
@@ -284,6 +318,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
                 successCounter = 0;
 
              */
+
+            previousDistance = distance;
 
             //Display Global (x, y, theta) coordinates
             telemetry.addData("Color Distance", sensing.getColorDistance());
@@ -346,7 +382,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
             robot.leftRear.setPower(signedTurnSpeed);
             robot.rightRear.setPower(-signedTurnSpeed);
 
-            if(Math.abs(angleError) < ANGLE_THRESHOLD && successTimer.milliseconds() > 50) {
+            if(Math.abs(angleError) < ANGLE_THRESHOLD && successTimer.milliseconds() > 10) {
                 successCounter++;
                 successTimer.reset();
             }
@@ -496,6 +532,15 @@ public class RunToCoordinateTest extends LinearOpMode  {
         private boolean isRunning = true;
         private boolean pushBlock = false;
         private boolean pushBlockActivated = false;
+        private Positioning positioning;
+        double pulleyCircumference = 2 * Math.PI * 1.0;
+        double liftMotorGearRatio = 70.0 / 56.0;
+        double liftEncoderCountsPerInch = 2240 * pulleyCircumference * liftMotorGearRatio;
+        double targetLiftPosition = liftEncoderCountsPerInch * 4;
+
+        public SensorThread(Positioning positioning){
+            this.positioning = positioning;
+        }
 
         public void stop(){
             isRunning = false;
@@ -512,10 +557,27 @@ public class RunToCoordinateTest extends LinearOpMode  {
          @Override
          public void run(){
             while(isRunning){
-                if(robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5 && !pushBlock && pushBlockActivated)
+                if(pushBlockActivated && robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5 && !pushBlock)
                     pushBlock = true;
-                if(pushBlock)
+                if(pushBlock) {
                     robot.servo_blockPush.setPosition(0.0);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    robot.claw.setPosition(1.0);
+                    while(positioning.getX() > 0)
+                        try {
+                            Thread.sleep(50);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    while(robot.liftMotor.getCurrentPosition() < targetLiftPosition)
+                        robot.liftMotor.setPower(-0.5);
+                    
+
+                }
             }
          }
     }
