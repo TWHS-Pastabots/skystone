@@ -4,12 +4,16 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.opencv.core.Core;
@@ -27,28 +31,32 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     private final double ANGLE_THRESHOLD = 3.0;
     private final double TURN_SPEED = 0.5;
-    private final double DRIVE_SPEED = 1.0;
-    private final double START_X = 0.0;
-    private final double START_Y = 0.0;
-    private final double START_ORIENTATION = 90.0;
+    private final double DRIVE_SPEED = 1;
     private final int THREAD_SLEEP_DELAY = 50;
+    private final double MINIMUM_POWER = 0.2;
+    static final double     Kp  = 0.002;
+    static final double     Ki  = 0.002;
+    static final double     Kd  = 0.000;
+
+    private final double START_X = 31.0;
+    private final double START_Y = 8.0;
+    private final double START_ORIENTATION = 90.0;
 
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime = new ElapsedTime();
     private ElapsedTime moveTimer = new ElapsedTime();
+    private ElapsedTime successTimer = new ElapsedTime();
     private ElapsedTime logTimer = new ElapsedTime();
 
     private OpenCvCamera phoneCam;
     private RunToCoordinateTest.DetectorPipeline detectorPipeline;
     private String stoneConfig;
 
+    private double integral;
+
     private File actionLogInternal = new File("C:\\Users\\Matt\\Documents\\GitHub\\skystone\\SkyStone-5.4\\TeamCode\\src\\main\\java\\org\\firstinspires\\ftc\\teamcode\\actionLog.txt");
     private File actionLog = AppUtil.getInstance().getSettingsFile("actionLog.txt");
     String log;
-
-
-
-
 
 
     @Override
@@ -70,7 +78,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         phoneCam.openCameraDevice();
         detectorPipeline = new DetectorPipeline();
         phoneCam.setPipeline(detectorPipeline);
-        phoneCam.startStreaming(320, 240, OpenCvCameraRotation.SIDEWAYS_LEFT);
+        phoneCam.startStreaming(320, 240, OpenCvCameraRotation.SIDEWAYS_RIGHT); //CHANGE BACK
 
         //Init complete
         telemetry.addData("Status", "Init Complete");
@@ -81,8 +89,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
         Thread positionThread = new Thread(positioning);
         positionThread.start();
 
-        SensorThread sensors = new SensorThread();
-        Thread sensorThread = new Thread(sensors);
+        SensorThread sensing = new SensorThread(positioning);
+        Thread sensorThread = new Thread(sensing);
         sensorThread.start();
 
         telemetry.addData("Status", "Started Thread");
@@ -91,41 +99,85 @@ public class RunToCoordinateTest extends LinearOpMode  {
         //START OF DRIVING
 
         runTime.reset();
-        driveToPosition(0.0, 40.0, DRIVE_SPEED, 2.0, 12.0, 10, positioning);
-        robot.leftIn.setPower(-.7);
-        robot.rightIn.setPower(-.7);
-        driveToPosition(4.0, 40.0, DRIVE_SPEED*0.6, 2, 5.0, 10, positioning);
-        sleep(1000);
+        driveToPosition(20.0, 48.0, DRIVE_SPEED, 90, 0.0, 40.0, 10, positioning, sensing);
+        sensing.activatePushBlock();
+        robot.leftIn.setPower(-.3);
+        robot.rightIn.setPower(-.3);
+        driveToPosition(23.0, 48.0, DRIVE_SPEED, 90, 0.0, 12.0, 10, positioning, sensing);
+        //sleep(1000);
         robot.leftIn.setPower(0);
         robot.rightIn.setPower(0);
+        driveToPosition( 23, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        driveToPosition( -36, 30.0, DRIVE_SPEED, 90, 0.0, 30.0, 10, positioning, sensing);
+        turn(45, 0.65, positioning);
+        robot.leftIn.setPower(1);
+        robot.rightIn.setPower(1);
+        sleep(500);
+        robot.leftIn.setPower(0);
+        robot.rightIn.setPower(0);
+        driveToPosition( 44, 30.0, DRIVE_SPEED, 90, 0.0, 60.0, 10, positioning, sensing);
+        driveToPosition( 44, 46.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        robot.leftIn.setPower(-.2);
+        robot.rightIn.setPower(-.2);
+        driveToPosition( 48, 46.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        robot.leftIn.setPower(0);
+        robot.rightIn.setPower(0);
+        driveToPosition( 48, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        driveToPosition( -36, 30.0, DRIVE_SPEED, 90, 0.0, 35.0, 10, positioning, sensing);
+        turn(45, 0.65, positioning);
+        robot.leftIn.setPower(1);
+        robot.rightIn.setPower(1);
+        sleep(500);
+        robot.leftIn.setPower(0);
+        robot.rightIn.setPower(0);
+        driveToPosition( 0, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
 
         telemetry.addData("Status:", "Finished Driving");
         telemetry.update();
 
         positioning.stop();
+        sensing.stop();
 
     }
 
-    public void driveToPosition(double targetX, double targetY, double speed, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning){
+    public void driveToPosition(double targetX, double targetY, double speed, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning, SensorThread sensing){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
         double movementAngle;
-        double startOrientation = positioning.getOrientation();
 
         double fLeft;
         double fRight;
         double rLeft;
         double rRight;
+        double error;
+        double steer;
+        double previousError = 0;
+        double previousDistance = distance;
+        double velocity;
+        boolean isRampingDown = false;
         int successCounter = 0;
+        double  dt = 0;
+        integral = 0;
 
+        //Turn to the desired heading
+        turn(heading, TURN_SPEED, positioning);
+
+        ElapsedTime pidTimer = new ElapsedTime();
         moveTimer.reset();
         logTimer.reset();
-        while(moveTimer.seconds() < timeoutS && distance > 0.5){
+        successTimer.reset();
+        while(moveTimer.seconds() < timeoutS && distance > 1){
             xDistance = targetX - positioning.getX();
             yDistance = targetY - positioning.getY();
             distance = Math.hypot(xDistance, yDistance);
             movementAngle = Math.toDegrees(Math.atan2(xDistance, yDistance)) - positioning.getOrientation();
+            velocity = (distance - previousDistance) / dt; //Calculated in inches/second
+
+            error = getError(heading, positioning);
+            pidTimer.reset();
+            steer = getSteerPID(error, previousError, dt, Kp, Ki, Kd);
+            previousError = error;
 
             //Convert the movement angle, which is relative to the y-axis to be relative to the x-axis for future calculations
             double angleXAxis = 90 - movementAngle;
@@ -164,7 +216,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
                 rLeft = -speed;
                 rRight = calcOtherPower(rLeft, 135.0, 45.0, angleXAxis);
             }
-            else if( angleXAxis == 0.0){
+            else if( angleXAxis == 0){
                 fLeft = speed;
                 fRight = -speed;
                 rLeft = -speed;
@@ -191,28 +243,64 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
 
             //Ramp up the motor powers
-            if(rampUpTimeS > 0) {
+            if(rampUpTimeS > moveTimer.seconds()) {
                 double rampUpPercent = moveTimer.seconds() / rampUpTimeS;
-                if(rampUpPercent < 0.6);
-                    rampUpPercent = 0.6;
+                if(rampUpPercent < 0.5);
+                    rampUpPercent = 0.5;
                 fLeft = fLeft * (rampUpPercent);
                 fRight = fRight * (rampUpPercent);
                 rLeft = rLeft * (rampUpPercent);
                 rRight = rRight * (rampUpPercent);
             }
+            else if(velocity > distance)
+                isRampingDown = true;
 
             //Ramp down the motor powers
+            if(isRampingDown){
+                fLeft = fLeft * (0.2);
+                fRight = fRight * (0.2);
+                rLeft = rLeft * (0.2);
+                rRight = rRight * (0.2);
+            }
+
+            //Provide steer to the motors based off the PID
+            fLeft += steer;
+            rLeft += steer;
+            fRight -= steer;
+            rRight -= steer;
+
+            //Make sure there is a minimum power being provided to the motors during a ramp down or up
+            double minPower = Math.min(Math.min(fLeft, fRight), Math.min(rLeft, rRight));
+            if(minPower < MINIMUM_POWER && (isRampingDown || rampUpTimeS > moveTimer.seconds()) ){
+                double powerMultiplier = MINIMUM_POWER / minPower;
+                fLeft = fLeft * (powerMultiplier);
+                fRight = fRight * (powerMultiplier);
+                rLeft = rLeft * (powerMultiplier);
+                rRight = rRight * (powerMultiplier);
+            }
+
+            //Make sure no motor is trying to go too fast
+            double maxPower = Math.max(Math.max(fLeft, fRight), Math.max(rLeft, rRight));
+            if(maxPower > 1){
+                fLeft = fLeft / (maxPower);
+                fRight = fRight / (maxPower);
+                rLeft = rLeft / (maxPower);
+                rRight = rRight / (maxPower);
+            }
+
+            //Ramp down the motor powers
+            /*
             if(distance < rampDownDistance){
                 double rampDownPercent = distance / rampDownDistance;
-                if(rampDownPercent < 0.6)
-                    rampDownPercent = 0.6;
+                if(rampDownPercent < 0.3)
+                    rampDownPercent = 0.3;
                 fLeft = fLeft * (rampDownPercent);
                 fRight = fRight * (rampDownPercent);
                 rLeft = rLeft * (rampDownPercent);
                 rRight = rRight * (rampDownPercent);
             }
 
-
+             */
 
             //Give powers to the wheels
             robot.leftFront.setPower(fLeft);
@@ -220,17 +308,40 @@ public class RunToCoordinateTest extends LinearOpMode  {
             robot.leftRear.setPower(rLeft);
             robot.rightRear.setPower(rRight);
 
+            //Check if robot is in the correct location
+            /*
+            if(distance < 1 && successTimer.milliseconds() > 20){
+                successCounter++;
+                successTimer.reset();
+            }
+            else if(distance > 1)
+                successCounter = 0;
+
+             */
+
+            previousDistance = distance;
+
             //Display Global (x, y, theta) coordinates
+            telemetry.addData("Color Distance", sensing.getColorDistance());
             telemetry.addData("X Position", positioning.getX());
             telemetry.addData("Y Position", positioning.getY());
             telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
+            telemetry.addData("Left  Front Motor P:", robot.leftFront.getPower());
+            telemetry.addData("Right  Front Motor P:", robot.rightFront.getPower());
+            telemetry.addData("Left  Rear Motor P:", robot.leftRear.getPower());
+            telemetry.addData("Right Rear Motor P:", robot.rightRear.getPower());
             telemetry.update();
             if ( logTimer.milliseconds() > 100 ) {
                 log += "Runtime::" + runTime.seconds() + "\n\t X Pos:: " + positioning.getX()
-                        + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n";
+                        + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n\t"
+                        + "FL Motor Power:: " + robot.leftFront.getPower() + " BL Motor Power:: " + robot.leftRear.getPower() + " FR Motor Power:: " +
+                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n";
 
                 logTimer.reset();
             }
+
+            //Set the time difference for the derivative
+            dt = pidTimer.seconds();
 
         }
 
@@ -242,11 +353,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         robot.leftRear.setPower(0);
         robot.rightRear.setPower(0);
 
-        //Turn to the orientation the move was started at
-        turn(startOrientation, TURN_SPEED, positioning);
-
         ReadWriteFile.writeFile(actionLog, log);
-
     }
 
     private void turn(double targetAngle, double turnSpeed, Positioning positioning){
@@ -254,7 +361,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         double angleError;
         int successCounter = 0;
 
-        moveTimer.reset();
+        successTimer.reset();
         while(successCounter < 5){
 
             angleError = targetAngle - positioning.getOrientation();
@@ -275,9 +382,9 @@ public class RunToCoordinateTest extends LinearOpMode  {
             robot.leftRear.setPower(signedTurnSpeed);
             robot.rightRear.setPower(-signedTurnSpeed);
 
-            if(Math.abs(angleError) < ANGLE_THRESHOLD && moveTimer.milliseconds() > 50) {
+            if(Math.abs(angleError) < ANGLE_THRESHOLD && successTimer.milliseconds() > 10) {
                 successCounter++;
-                moveTimer.reset();
+                successTimer.reset();
             }
             else if(Math.abs(angleError) > ANGLE_THRESHOLD)
                 successCounter = 0;
@@ -303,9 +410,27 @@ public class RunToCoordinateTest extends LinearOpMode  {
         return ( (firstPower * Math.cos(th1) * Math.tan(thf)) - (firstPower * Math.sin(th1)) ) / ( Math.sin(th2) - (Math.cos(th2) * Math.tan(thf)) );
     }
 
+
+    public double getError(double targetAngle, Positioning positioning) {
+
+        double robotError;
+
+        // calculate error in -179 to +180 range  (
+        robotError = targetAngle - positioning.getOrientation();
+        while (robotError > 180)  robotError -= 360;
+        while (robotError <= -180) robotError += 360;
+        return robotError;
+    }
+
+    public double getSteerPID(double error, double previousError, double dt, double Kp, double Ki, double Kd) {
+        integral = integral + (error * dt);
+        double derivative = (error - previousError) / dt;
+        return Range.clip((error * Kp) + (Ki * integral) + (Kd * derivative), -1, 1);
+    }
+
     private void writeToFile (String log, File f)  throws IOException {
-        Runtime rt = Runtime.getRuntime();
-        Process pr = rt.exec("adb pull /sdcard/com.qualcomm.ftcRobotcontroller.logcat C:\\FTC Code\\skystone\\SkyStone-5.4\\TeamCode\\src\\main\\java\\org\\firstinspires\\ftc\\teamcode\\actionLog.txt");
+        FileWriter fr = new FileWriter(f);
+        telemetry.addData("Final Log", ReadWriteFile.readFile(actionLog));
     }
 
 
@@ -406,18 +531,53 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         private boolean isRunning = true;
         private boolean pushBlock = false;
+        private boolean pushBlockActivated = false;
+        private Positioning positioning;
+        double pulleyCircumference = 2 * Math.PI * 1.0;
+        double liftMotorGearRatio = 70.0 / 56.0;
+        double liftEncoderCountsPerInch = 2240 * pulleyCircumference * liftMotorGearRatio;
+        double targetLiftPosition = liftEncoderCountsPerInch * 4;
+
+        public SensorThread(Positioning positioning){
+            this.positioning = positioning;
+        }
 
         public void stop(){
             isRunning = false;
         }
 
+        public double getColorDistance(){
+            return robot.blockInSensor.getDistance(DistanceUnit.INCH);
+        }
+
+        public void activatePushBlock(){
+            pushBlockActivated = true;
+        }
+
          @Override
          public void run(){
             while(isRunning){
-                if(robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5 && !pushBlock)
+                if(pushBlockActivated && robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5 && !pushBlock)
                     pushBlock = true;
-                if(pushBlock)
+                if(pushBlock) {
                     robot.servo_blockPush.setPosition(0.0);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    robot.claw.setPosition(1.0);
+                    while(positioning.getX() > 0)
+                        try {
+                            Thread.sleep(50);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    while(robot.liftMotor.getCurrentPosition() < targetLiftPosition)
+                        robot.liftMotor.setPower(-0.5);
+
+
+                }
             }
          }
     }
