@@ -532,11 +532,13 @@ public class RunToCoordinateTest extends LinearOpMode  {
         private boolean isRunning = true;
         private boolean pushBlock = false;
         private boolean pushBlockActivated = false;
+        private boolean dropBlock = false;
         private Positioning positioning;
         double pulleyCircumference = 2 * Math.PI * 1.0;
         double liftMotorGearRatio = 70.0 / 56.0;
         double liftEncoderCountsPerInch = 2240 * pulleyCircumference * liftMotorGearRatio;
         double targetLiftPosition = liftEncoderCountsPerInch * 4;
+        double pos;
 
         public SensorThread(Positioning positioning){
             this.positioning = positioning;
@@ -552,6 +554,10 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         public void activatePushBlock(){
             pushBlockActivated = true;
+        }
+
+        public void dropBlock(){
+            dropBlock = true;
         }
 
          @Override
@@ -573,8 +579,16 @@ public class RunToCoordinateTest extends LinearOpMode  {
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                    while(robot.liftMotor.getCurrentPosition() < targetLiftPosition)
+                    while(robot.liftMotor.getCurrentPosition() < targetLiftPosition) {
+                        robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                         robot.liftMotor.setPower(-0.5);
+                        pos = robot.liftMotor.getCurrentPosition();
+                    }
+                    while(!dropBlock){
+                        robot.liftMotor.setTargetPosition((int)pos);
+                        robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                        robot.liftMotor.setPower(1);
+                    }
 
 
                 }
