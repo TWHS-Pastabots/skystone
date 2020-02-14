@@ -89,7 +89,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         Thread positionThread = new Thread(positioning);
         positionThread.start();
 
-        SensorThread sensing = new SensorThread();
+        SensorThread sensing = new SensorThread(positioning);
         Thread sensorThread = new Thread(sensing);
         sensorThread.start();
 
@@ -575,7 +575,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
                         }
                     while(robot.liftMotor.getCurrentPosition() < targetLiftPosition)
                         robot.liftMotor.setPower(-0.5);
-                    
+
 
                 }
             }
