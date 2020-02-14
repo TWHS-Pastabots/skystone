@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -30,14 +31,14 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     private final double ANGLE_THRESHOLD = 3.0;
     private final double TURN_SPEED = 0.5;
-    private final double DRIVE_SPEED = 1.0;
+    private final double DRIVE_SPEED = 1;
     private final int THREAD_SLEEP_DELAY = 50;
-    static final double     Kp  = 0.15;
-    static final double     Ki  = 0.17;
-    static final double     Kd  = 0.01;
+    static final double     Kp  = 0.005;
+    static final double     Ki  = 0.005;
+    static final double     Kd  = 0.000;
 
-    private final double START_X = 0.0;
-    private final double START_Y = 0.0;
+    private final double START_X = 31.0;
+    private final double START_Y = 8.0;
     private final double START_ORIENTATION = 90.0;
 
     private RobotHardware robot = new RobotHardware();
@@ -56,7 +57,6 @@ public class RunToCoordinateTest extends LinearOpMode  {
     private File actionLog = AppUtil.getInstance().getSettingsFile("actionLog.txt");
     String log;
 
-    Runtime rt = Runtime.getRuntime();
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -77,7 +77,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         phoneCam.openCameraDevice();
         detectorPipeline = new DetectorPipeline();
         phoneCam.setPipeline(detectorPipeline);
-        phoneCam.startStreaming(320, 240, OpenCvCameraRotation.SIDEWAYS_LEFT);
+        phoneCam.startStreaming(320, 240, OpenCvCameraRotation.SIDEWAYS_RIGHT); //CHANGE BACK
 
         //Init complete
         telemetry.addData("Status", "Init Complete");
@@ -98,24 +98,44 @@ public class RunToCoordinateTest extends LinearOpMode  {
         //START OF DRIVING
 
         runTime.reset();
-        driveToPosition(0.0, 40.0, DRIVE_SPEED, 2.0, 90, 12.0, 10, positioning, sensing);
-        robot.leftIn.setPower(-.7);
-        robot.rightIn.setPower(-.7);
-        driveToPosition(4.0, 40.0, DRIVE_SPEED*0.6, 2, 90, 5.0, 10, positioning, sensing);
-        sleep(1000);
+        driveToPosition(20.0, 48.0, DRIVE_SPEED, 90, 0.0, 40.0, 10, positioning, sensing);
+        sensing.activatePushBlock();
+        robot.leftIn.setPower(-.3);
+        robot.rightIn.setPower(-.3);
+        driveToPosition(23.0, 48.0, DRIVE_SPEED, 90, 0.0, 12.0, 10, positioning, sensing);
+        //sleep(1000);
         robot.leftIn.setPower(0);
         robot.rightIn.setPower(0);
+        driveToPosition( 23, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        driveToPosition( -36, 30.0, DRIVE_SPEED, 90, 0.0, 30.0, 10, positioning, sensing);
+        turn(45, 0.65, positioning);
+        robot.leftIn.setPower(1);
+        robot.rightIn.setPower(1);
+        sleep(500);
+        robot.leftIn.setPower(0);
+        robot.rightIn.setPower(0);
+        driveToPosition( 44, 30.0, DRIVE_SPEED, 90, 0.0, 60.0, 10, positioning, sensing);
+        driveToPosition( 44, 46.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        robot.leftIn.setPower(-.2);
+        robot.rightIn.setPower(-.2);
+        driveToPosition( 48, 46.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        robot.leftIn.setPower(0);
+        robot.rightIn.setPower(0);
+        driveToPosition( 48, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        driveToPosition( -36, 30.0, DRIVE_SPEED, 90, 0.0, 35.0, 10, positioning, sensing);
+        turn(45, 0.65, positioning);
+        robot.leftIn.setPower(1);
+        robot.rightIn.setPower(1);
+        sleep(500);
+        robot.leftIn.setPower(0);
+        robot.rightIn.setPower(0);
+        driveToPosition( 0, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
 
         telemetry.addData("Status:", "Finished Driving");
         telemetry.update();
 
         positioning.stop();
-        try {
-            writeToFile(log, actionLog);
-        }
-        catch ( IOException e ){
-
-        }
+        sensing.stop();
 
     }
 
@@ -143,7 +163,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
         moveTimer.reset();
         logTimer.reset();
         successTimer.reset();
-        while(moveTimer.seconds() < timeoutS && successCounter < 5){
+        while(moveTimer.seconds() < timeoutS && distance > 1){
             xDistance = targetX - positioning.getX();
             yDistance = targetY - positioning.getY();
             distance = Math.hypot(xDistance, yDistance);
@@ -191,7 +211,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
                 rLeft = -speed;
                 rRight = calcOtherPower(rLeft, 135.0, 45.0, angleXAxis);
             }
-            else if( angleXAxis == 0.0){
+            else if( angleXAxis == 0){
                 fLeft = speed;
                 fRight = -speed;
                 rLeft = -speed;
@@ -218,10 +238,10 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
 
             //Ramp up the motor powers
-            if(rampUpTimeS > 0) {
+            if(rampUpTimeS > moveTimer.seconds()) {
                 double rampUpPercent = moveTimer.seconds() / rampUpTimeS;
-                if(rampUpPercent < 0.6);
-                    rampUpPercent = 0.6;
+                if(rampUpPercent < 0.5);
+                    rampUpPercent = 0.5;
                 fLeft = fLeft * (rampUpPercent);
                 fRight = fRight * (rampUpPercent);
                 rLeft = rLeft * (rampUpPercent);
@@ -231,8 +251,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
             //Ramp down the motor powers
             if(distance < rampDownDistance){
                 double rampDownPercent = distance / rampDownDistance;
-                if(rampDownPercent < 0.6)
-                    rampDownPercent = 0.6;
+                if(rampDownPercent < 0.3)
+                    rampDownPercent = 0.3;
                 fLeft = fLeft * (rampDownPercent);
                 fRight = fRight * (rampDownPercent);
                 rLeft = rLeft * (rampDownPercent);
@@ -240,10 +260,13 @@ public class RunToCoordinateTest extends LinearOpMode  {
             }
 
             //Correct the heading
+            /*
             fLeft += steer;
             rLeft += steer;
             fRight -= steer;
             rRight -= steer;
+
+             */
 
             //Give powers to the wheels
             robot.leftFront.setPower(fLeft);
@@ -252,22 +275,31 @@ public class RunToCoordinateTest extends LinearOpMode  {
             robot.rightRear.setPower(rRight);
 
             //Check if robot is in the correct location
-            if(distance < 0.5 && successTimer.milliseconds() > 50){
+            /*
+            if(distance < 1 && successTimer.milliseconds() > 20){
                 successCounter++;
                 successTimer.reset();
             }
-            else if(distance > 0.5)
+            else if(distance > 1)
                 successCounter = 0;
+
+             */
 
             //Display Global (x, y, theta) coordinates
             telemetry.addData("Color Distance", sensing.getColorDistance());
             telemetry.addData("X Position", positioning.getX());
             telemetry.addData("Y Position", positioning.getY());
             telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
+            telemetry.addData("Left  Front Motor P:", robot.leftFront.getPower());
+            telemetry.addData("Right  Front Motor P:", robot.rightFront.getPower());
+            telemetry.addData("Left  Rear Motor P:", robot.leftRear.getPower());
+            telemetry.addData("Right Rear Motor P:", robot.rightRear.getPower());
             telemetry.update();
             if ( logTimer.milliseconds() > 100 ) {
                 log += "Runtime::" + runTime.seconds() + "\n\t X Pos:: " + positioning.getX()
-                        + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n";
+                        + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n\t"
+                        + "FL Motor Power:: " + robot.leftFront.getPower() + " BL Motor Power:: " + robot.leftRear.getPower() + " FR Motor Power:: " +
+                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n";
 
                 logTimer.reset();
             }
@@ -286,7 +318,6 @@ public class RunToCoordinateTest extends LinearOpMode  {
         robot.rightRear.setPower(0);
 
         ReadWriteFile.writeFile(actionLog, log);
-
     }
 
     private void turn(double targetAngle, double turnSpeed, Positioning positioning){
@@ -464,6 +495,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
         private boolean isRunning = true;
         private boolean pushBlock = false;
+        private boolean pushBlockActivated = false;
 
         public void stop(){
             isRunning = false;
@@ -473,10 +505,14 @@ public class RunToCoordinateTest extends LinearOpMode  {
             return robot.blockInSensor.getDistance(DistanceUnit.INCH);
         }
 
+        public void activatePushBlock(){
+            pushBlockActivated = true;
+        }
+
          @Override
          public void run(){
             while(isRunning){
-                if(robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5 && !pushBlock)
+                if(robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5 && !pushBlock && pushBlockActivated)
                     pushBlock = true;
                 if(pushBlock)
                     robot.servo_blockPush.setPosition(0.0);
