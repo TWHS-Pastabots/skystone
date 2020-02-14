@@ -102,7 +102,6 @@ public class RobotHardware {
         leftIn.setPower(0);
         rightIn.setPower(0);
         liftMotor.setPower(0);
-        clawT.setPosition(0);
 
         // Set all motors to run without encoders.
         // May want to use RUN_USING_ENCODERS if encoders are installed.
