@@ -214,6 +214,7 @@ public class DriverControlled extends OpMode{
         robot.leftRear.setPower(v3*slowCon );
         robot.rightRear.setPower(v4*slowCon );
 
+        telemetry.addData("Lift Motor Encoder Position:", robot.liftMotor.getCurrentPosition());
         telemetry.addData("Powers:", v1);
         telemetry.addData("", v2);
         telemetry.addData("", v3);

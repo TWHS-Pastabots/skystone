@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ReadWriteFile;
@@ -31,7 +32,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
 
     private final double ANGLE_THRESHOLD = 3.0;
     private final double TURN_SPEED = 0.5;
-    private final double DRIVE_SPEED = 1;
+    private final double DRIVE_SPEED = 0.5;
     private final int THREAD_SLEEP_DELAY = 50;
     private final double MINIMUM_POWER = 0.2;
     static final double     Kp  = 0.002;
@@ -48,6 +49,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
     private ElapsedTime successTimer = new ElapsedTime();
     private ElapsedTime logTimer = new ElapsedTime();
 
+    private TouchSensor touch;
+
     private OpenCvCamera phoneCam;
     private RunToCoordinateTest.DetectorPipeline detectorPipeline;
     private String stoneConfig;
@@ -62,6 +65,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
     @Override
     public void runOpMode() throws InterruptedException {
         robot.init(hardwareMap);
+        touch = hardwareMap.touchSensor.get("touch");
 
         ReadWriteFile.writeFile(actionLog, "Log Initiated" );
 
@@ -101,35 +105,28 @@ public class RunToCoordinateTest extends LinearOpMode  {
         runTime.reset();
         driveToPosition(20.0, 48.0, DRIVE_SPEED, 90, 0.0, 40.0, 10, positioning, sensing);
         sensing.activatePushBlock();
-        robot.leftIn.setPower(-.3);
-        robot.rightIn.setPower(-.3);
+        robot.leftIn.setPower(-.7);
+        robot.rightIn.setPower(-.7);
         driveToPosition(23.0, 48.0, DRIVE_SPEED, 90, 0.0, 12.0, 10, positioning, sensing);
-        //sleep(1000);
+        sleep(1000);
         robot.leftIn.setPower(0);
         robot.rightIn.setPower(0);
         driveToPosition( 23, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
         driveToPosition( -36, 30.0, DRIVE_SPEED, 90, 0.0, 30.0, 10, positioning, sensing);
-        turn(45, 0.65, positioning);
-        robot.leftIn.setPower(1);
-        robot.rightIn.setPower(1);
-        sleep(500);
-        robot.leftIn.setPower(0);
-        robot.rightIn.setPower(0);
+        sensing.dropBlock();
+        sleep(6000);
         driveToPosition( 44, 30.0, DRIVE_SPEED, 90, 0.0, 60.0, 10, positioning, sensing);
         driveToPosition( 44, 46.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
-        robot.leftIn.setPower(-.2);
-        robot.rightIn.setPower(-.2);
+        robot.leftIn.setPower(-.7);
+        robot.rightIn.setPower(-.7);
         driveToPosition( 48, 46.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+        sleep(1000);
         robot.leftIn.setPower(0);
         robot.rightIn.setPower(0);
         driveToPosition( 48, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
         driveToPosition( -36, 30.0, DRIVE_SPEED, 90, 0.0, 35.0, 10, positioning, sensing);
-        turn(45, 0.65, positioning);
-        robot.leftIn.setPower(1);
-        robot.rightIn.setPower(1);
-        sleep(500);
-        robot.leftIn.setPower(0);
-        robot.rightIn.setPower(0);
+        sensing.dropBlock();
+        sleep(6000);
         driveToPosition( 0, 30.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
 
         telemetry.addData("Status:", "Finished Driving");
@@ -252,24 +249,27 @@ public class RunToCoordinateTest extends LinearOpMode  {
                 rLeft = rLeft * (rampUpPercent);
                 rRight = rRight * (rampUpPercent);
             }
-            else if(velocity > distance)
+            else if(distance < 4.0)
                 isRampingDown = true;
 
             //Ramp down the motor powers
             if(isRampingDown){
-                fLeft = fLeft * (0.2);
-                fRight = fRight * (0.2);
-                rLeft = rLeft * (0.2);
-                rRight = rRight * (0.2);
+                fLeft = fLeft * (0.5);
+                fRight = fRight * (0.5);
+                rLeft = rLeft * (0.5);
+                rRight = rRight * (0.5);
             }
 
             //Provide steer to the motors based off the PID
-            fLeft += steer;
-            rLeft += steer;
-            fRight -= steer;
-            rRight -= steer;
+            if(!isRampingDown) {
+                fLeft += steer;
+                rLeft += steer;
+                fRight -= steer;
+                rRight -= steer;
+            }
 
             //Make sure there is a minimum power being provided to the motors during a ramp down or up
+            /*
             double minPower = Math.min(Math.min(fLeft, fRight), Math.min(rLeft, rRight));
             if(minPower < MINIMUM_POWER && (isRampingDown || rampUpTimeS > moveTimer.seconds()) ){
                 double powerMultiplier = MINIMUM_POWER / minPower;
@@ -278,6 +278,8 @@ public class RunToCoordinateTest extends LinearOpMode  {
                 rLeft = rLeft * (powerMultiplier);
                 rRight = rRight * (powerMultiplier);
             }
+
+             */
 
             //Make sure no motor is trying to go too fast
             double maxPower = Math.max(Math.max(fLeft, fRight), Math.max(rLeft, rRight));
@@ -322,7 +324,7 @@ public class RunToCoordinateTest extends LinearOpMode  {
             previousDistance = distance;
 
             //Display Global (x, y, theta) coordinates
-            telemetry.addData("Color Distance", sensing.getColorDistance());
+            telemetry.addData("Lift Encoder Pos", robot.liftMotor.getCurrentPosition());
             telemetry.addData("X Position", positioning.getX());
             telemetry.addData("Y Position", positioning.getY());
             telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
@@ -532,11 +534,15 @@ public class RunToCoordinateTest extends LinearOpMode  {
         private boolean isRunning = true;
         private boolean pushBlock = false;
         private boolean pushBlockActivated = false;
+        private boolean dropBlock = false;
+        private boolean blockDropped = false;
         private Positioning positioning;
+        private ElapsedTime liftTimer = new ElapsedTime();
         double pulleyCircumference = 2 * Math.PI * 1.0;
         double liftMotorGearRatio = 70.0 / 56.0;
-        double liftEncoderCountsPerInch = 2240 * pulleyCircumference * liftMotorGearRatio;
-        double targetLiftPosition = liftEncoderCountsPerInch * 4;
+        double liftEncoderCountsPerInch = (2240 * pulleyCircumference * liftMotorGearRatio) / 3.0;
+        double targetLiftPosition = liftEncoderCountsPerInch * 4.0;
+        double pos;
 
         public SensorThread(Positioning positioning){
             this.positioning = positioning;
@@ -550,8 +556,13 @@ public class RunToCoordinateTest extends LinearOpMode  {
             return robot.blockInSensor.getDistance(DistanceUnit.INCH);
         }
 
+
         public void activatePushBlock(){
             pushBlockActivated = true;
+        }
+
+        public void dropBlock(){
+            dropBlock = true;
         }
 
          @Override
@@ -566,17 +577,55 @@ public class RunToCoordinateTest extends LinearOpMode  {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    robot.claw.setPosition(1.0);
-                    while(positioning.getX() > 0)
+                    while (positioning.getX() > 10)
                         try {
                             Thread.sleep(50);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                    while(robot.liftMotor.getCurrentPosition() < targetLiftPosition)
+                    robot.claw.setPosition(1.0);
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    liftTimer.reset();
+                    while(liftTimer.seconds() < 1.5) {
                         robot.liftMotor.setPower(-0.5);
+                    }
+                    robot.liftMotor.setPower(0);
+                    robot.servo_blockPush.setPosition(1.0);
 
-
+                    while(!blockDropped){
+                        if(dropBlock){
+                            robot.clawT.setPosition(0.0);
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            robot.claw.setPosition(0.0);
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            robot.clawT.setPosition(1.0);
+                            blockDropped = true;
+                        }
+                    }
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    while(!touch.isPressed()){
+                        robot.liftMotor.setPower(0.5);
+                    }
+                    robot.liftMotor.setPower(0.0);
+                    dropBlock = false;
+                    pushBlock = false;
+                    blockDropped = false;
                 }
             }
          }
