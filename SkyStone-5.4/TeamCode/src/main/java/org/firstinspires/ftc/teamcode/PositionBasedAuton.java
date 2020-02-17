@@ -1,19 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.ftccommon.SoundPlayer;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ReadWriteFile;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
@@ -27,21 +19,26 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvInternalCamera;
 import org.openftc.easyopencv.OpenCvPipeline;
 
-@Autonomous
-public class RunToCoordinateTest extends OpMode{
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public abstract class PositionBasedAuton extends OpMode{
 
     private final double ANGLE_THRESHOLD = 3.0;
-    private final double TURN_SPEED = 0.5;
-    private final double DRIVE_SPEED = 0.5;
+    public final double TURN_SPEED = 0.5;
+    public final double TURN_SPEED_HIGH = 1.0;
+    public final double DRIVE_SPEED = 0.5;
+    public final double DRIVE_SPEED_HIGH = 1.0;
     private final int THREAD_SLEEP_DELAY = 50;
     private final double MINIMUM_POWER = 0.2;
-    static final double     Kp  = 0.002;
-    static final double     Ki  = 0.002;
-    static final double     Kd  = 0.000;
+    private static final double Kp  = 0.002;
+    private static final double Ki  = 0.002;
+    private static final double Kd  = 0.000;
 
-    private final double START_X = 31.0;
-    private final double START_Y = 8.0;
-    private final double START_ORIENTATION = 90.0;
+    public double startX = 0.0;
+    public double startY = 0.0;
+    public double startOrientation = 0.0;
 
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime = new ElapsedTime();
@@ -52,11 +49,11 @@ public class RunToCoordinateTest extends OpMode{
     private TouchSensor touch;
 
     private OpenCvCamera phoneCam;
-    private RunToCoordinateTest.DetectorPipeline detectorPipeline;
+    private PositionBasedAuton.DetectorPipeline detectorPipeline;
     private String stoneConfig;
 
-    private Positioning positioning;
-    private SensorThread sensing;
+    public Positioning positioning;
+    public SensorThread sensing;
 
     private double integral;
 
@@ -66,6 +63,7 @@ public class RunToCoordinateTest extends OpMode{
 
     @Override
     public void init(){
+        setStartPos();
         robot.init(hardwareMap);
         touch = hardwareMap.touchSensor.get("touch");
 
@@ -87,7 +85,7 @@ public class RunToCoordinateTest extends OpMode{
         phoneCam.startStreaming(320, 240, OpenCvCameraRotation.SIDEWAYS_RIGHT); //CHANGE BACK
 
         //Start positioning thread
-        positioning = new Positioning(robot.leftEnc, robot.rightEnc, robot.horizEnc, THREAD_SLEEP_DELAY, robot.imu, START_ORIENTATION, START_X, START_Y);
+        positioning = new Positioning(robot.leftEnc, robot.rightEnc, robot.horizEnc, THREAD_SLEEP_DELAY, robot.imu, startOrientation, startX, startY);
         Thread positionThread = new Thread(positioning);
         positionThread.start();
 
@@ -107,51 +105,10 @@ public class RunToCoordinateTest extends OpMode{
         stoneConfig = detectorPipeline.getDetectedPos();
     }
 
-    // Run once on start
     @Override
-    public void start() {
+    public void start(){
         runTime.reset();
-
-        //Drive up to the middle block, turn on the intake, then drive into the middle block
-        driveToPosition(20.0, 49.0, DRIVE_SPEED, 90, 0.0, 40.0, 10, positioning, sensing);
-        sensing.activateIntake();
-        driveToPosition(23.0, 49.0, DRIVE_SPEED, 90, 0.0, 12.0, 10, positioning, sensing);
-
-        //Drive back towards the wall, drive to the platform, turn to face it, drop the block onto it, then turn back to face the quarry
-        driveToPosition( 23, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
-        driveToPosition( -36, 32.0, DRIVE_SPEED, 90, 0.0, 30.0, 10, positioning, sensing);
-        turn(180, TURN_SPEED, positioning);
-        sensing.dropBlock();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        turn(90, TURN_SPEED, positioning);
-
-        //Drive back to the quarry, drive up to the far middle block, turn on the intake, then drive into the far middle block
-        driveToPosition( 46, 30.0, DRIVE_SPEED, 90, 0.0, 60.0, 10, positioning, sensing);
-        driveToPosition( 46, 49.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
-        sensing.activateIntake();
-        driveToPosition( 49, 49.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
-
-        //Drive back towards the wall, drive to the platform, turn to face it, drop the block onto it, then turn back to face the quarry
-        driveToPosition( 49, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
-        driveToPosition( -36, 32.0, DRIVE_SPEED, 90, 0.0, 35.0, 10, positioning, sensing);
-        turn(180, TURN_SPEED, positioning);
-        sensing.dropBlock();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        turn(90, TURN_SPEED, positioning);
-
-        //Drive to park under the skybridge, far from the wall
-        driveToPosition( 0, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
-
-        telemetry.addData("Status:", "Finished Driving");
-        telemetry.update();
+        drive();
     }
 
     @Override
@@ -165,6 +122,23 @@ public class RunToCoordinateTest extends OpMode{
         sensing.stop();
     }
 
+    public String getStoneConfig(){
+        return stoneConfig;
+    }
+
+    public void lowerHooks(){
+        robot.leftH.setPosition(0);
+        robot.rightH.setPosition(1);
+    }
+
+    public void raiseHooks(){
+        robot.leftH.setPosition(1);
+        robot.rightH.setPosition(0);
+    }
+
+    public abstract void setStartPos();
+
+    public abstract void drive();
 
 
     public void driveToPosition(double targetX, double targetY, double speed, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning, SensorThread sensing){
@@ -388,7 +362,7 @@ public class RunToCoordinateTest extends OpMode{
         ReadWriteFile.writeFile(actionLog, log);
     }
 
-    private void turn(double targetAngle, double turnSpeed, Positioning positioning){
+    public void turn(double targetAngle, double turnSpeed, Positioning positioning){
 
         double angleError;
         int successCounter = 0;
@@ -634,9 +608,6 @@ public class RunToCoordinateTest extends OpMode{
                 e.printStackTrace();
             }
         }
-
-
-
 
          @Override
          public void run(){
