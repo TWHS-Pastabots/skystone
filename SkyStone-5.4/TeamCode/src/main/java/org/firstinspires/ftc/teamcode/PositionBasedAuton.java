@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -23,17 +23,17 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public abstract class PositionBasedAuton extends OpMode{
+public abstract class PositionBasedAuton extends LinearOpMode {
 
     private final double ANGLE_THRESHOLD = 3.0;
-    public final double TURN_SPEED = 0.5;
+    public final double TURN_SPEED = 0.7;
     public final double TURN_SPEED_HIGH = 1.0;
-    public final double DRIVE_SPEED = 0.5;
+    public final double DRIVE_SPEED = 1.0;
     public final double DRIVE_SPEED_HIGH = 1.0;
     private final int THREAD_SLEEP_DELAY = 50;
     private final double MINIMUM_POWER = 0.2;
-    private static final double Kp  = 0.002;
-    private static final double Ki  = 0.002;
+    private static final double Kp  = 0.003;
+    private static final double Ki  = 0.003;
     private static final double Kd  = 0.000;
 
     public double startX = 0.0;
@@ -62,7 +62,7 @@ public abstract class PositionBasedAuton extends OpMode{
     String log;
 
     @Override
-    public void init(){
+    public void runOpMode(){
         setStartPos();
         robot.init(hardwareMap);
         touch = hardwareMap.touchSensor.get("touch");
@@ -72,10 +72,12 @@ public abstract class PositionBasedAuton extends OpMode{
         robot.leftEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rightEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.horizEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         robot.leftEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         robot.rightEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         robot.horizEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         phoneCam = new OpenCvInternalCamera(OpenCvInternalCamera.CameraDirection.FRONT, cameraMonitorViewId);
@@ -97,29 +99,21 @@ public abstract class PositionBasedAuton extends OpMode{
         //Init complete
         telemetry.addData("Status", "Init Complete");
         telemetry.update();
-    }
 
-    @Override
-    public void init_loop() {
         //Find the current configuration of the skystones
-        stoneConfig = detectorPipeline.getDetectedPos();
-    }
+        while(!isStarted()) {
+            stoneConfig = detectorPipeline.getDetectedPos();
+            telemetry.addData("Stone Config: ", stoneConfig);
+            telemetry.addData("Color Distance ", robot.blockInSensor.getDistance(DistanceUnit.INCH));
+            telemetry.update();
+        }
 
-    @Override
-    public void start(){
+        waitForStart();
         runTime.reset();
         drive();
-    }
-
-    @Override
-    public void loop() {
-
-    }
-
-    @Override
-    public void stop(){
         positioning.stop();
         sensing.stop();
+
     }
 
     public String getStoneConfig(){
@@ -141,10 +135,11 @@ public abstract class PositionBasedAuton extends OpMode{
     public abstract void drive();
 
 
-    public void driveToPosition(double targetX, double targetY, double speed, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning, SensorThread sensing){
+    public void driveToPosition(double targetX, double targetY, double speed, double heading, double rampUpTimeS, boolean rampDown, double timeoutS, Positioning positioning, SensorThread sensing){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
+        double startDistance = distance;
         double movementAngle;
 
         double fLeft;
@@ -253,15 +248,15 @@ public abstract class PositionBasedAuton extends OpMode{
                 rLeft = rLeft * (rampUpPercent);
                 rRight = rRight * (rampUpPercent);
             }
-            else if(distance < 4.0)
+            else if(distance < (startDistance / 3.0) && rampDown)
                 isRampingDown = true;
 
             //Ramp down the motor powers
             if(isRampingDown){
-                fLeft = fLeft * (0.5);
-                fRight = fRight * (0.5);
-                rLeft = rLeft * (0.5);
-                rRight = rRight * (0.5);
+                fLeft = fLeft * (0.25);
+                fRight = fRight * (0.25);
+                rLeft = rLeft * (0.25);
+                rRight = rRight * (0.25);
             }
 
             //Provide steer to the motors based off the PID
@@ -464,8 +459,8 @@ public abstract class PositionBasedAuton extends OpMode{
         private final Scalar BLACK = new Scalar(0,0,0);
         private final Scalar WHITE = new Scalar(256, 256, 256);
         private final int r = 10;
-        private final int cx0 = 75, cx1 = 140, cx2 = 220;// Width=320 Height=240
-        private final int cy0 = 175, cy1 = 175, cy2 = 175;
+        private final int cx0 = 40, cx1 = 130, cx2 = 210;// Width=320 Height=240
+        private final int cy0 = 60, cy1 = 60, cy2 = 60;
 
         private String detectedPos;
 
@@ -500,11 +495,11 @@ public abstract class PositionBasedAuton extends OpMode{
             double sum2 = sum(Core.sumElems(mat2).val);
 
             if(sum0 < sum1 && sum0 < sum2)
-                detectedPos = "Left";
+                detectedPos = "Right";
             else if(sum1 < sum0 && sum1 < sum2)
                 detectedPos = "Middle";
             else if(sum2 < sum1 && sum2 < sum0)
-                detectedPos = "Right";
+                detectedPos = "Left";
 
 
             /*
@@ -544,11 +539,19 @@ public abstract class PositionBasedAuton extends OpMode{
         double pulleyCircumference = 2 * Math.PI * 1.0;
         double liftMotorGearRatio = 70.0 / 56.0;
         double liftEncoderCountsPerInch = (2240 * pulleyCircumference * liftMotorGearRatio) / 3.0;
-        double targetLiftPosition = liftEncoderCountsPerInch * 4.0;
+        double targetLiftPosition = 1000; //liftEncoderCountsPerInch * 4.0
         double pos;
 
         public SensorThread(Positioning positioning){
             this.positioning = positioning;
+        }
+
+        public boolean isBlockDropped(){
+            return blockDropped;
+        }
+
+        public double getEncPos(){
+            return robot.liftMotor.getCurrentPosition();
         }
 
         public void stop(){
@@ -563,16 +566,16 @@ public abstract class PositionBasedAuton extends OpMode{
             dropBlockRequested = true;
         }
 
-        private void lowerClaw(){
+        private void closeClaw(){
             robot.claw.setPosition(1.0);
         }
 
-        private void raiseClaw(){
+        private void openClaw(){
             robot.claw.setPosition(0.0);
         }
 
         private void lowerClawPartially(){
-            robot.claw.setPosition(0.75);
+            robot.claw.setPosition(0.65);
         }
 
         private void turnClawIn(){
@@ -583,11 +586,11 @@ public abstract class PositionBasedAuton extends OpMode{
             robot.clawT.setPosition(0.0);
         }
 
-        private void pushBlockIn(){
+        private void activateSpanker(){
             robot.servo_blockPush.setPosition(0.0);
         }
 
-        private void retractBlockPusher(){
+        private void retractSpanker(){
             robot.servo_blockPush.setPosition(1.0);
         }
 
@@ -614,46 +617,49 @@ public abstract class PositionBasedAuton extends OpMode{
             while(isRunning){
                 if(intakeActivated){
                     //Turn on the intake and keep it on until a block is inside the robot
+                    robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                     turnOnIntake();
                     while(!(robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5))
                         sleep(50);
                     turnOffIntake();
 
                     //Push the block into place and lower claw onto it only partially
-                    pushBlockIn();
-                    sleep(2000);
-                    lowerClawPartially();
+                    activateSpanker();
+                    sleep(250);
+                    closeClaw();
 
                     //Wait until the robot has crossed into positive x
                     while (positioning.getX() > 0)
                         sleep(50);
 
                     //Grab the block with the claw and raise the lift into position then turn the claw out
-                    lowerClaw();
-                    sleep(500);
-                    while(robot.liftMotor.getCurrentPosition() < targetLiftPosition) {
-                        robot.liftMotor.setPower(-0.5);
+                    while(Math.abs(robot.liftMotor.getCurrentPosition()) < targetLiftPosition) {
+                        robot.liftMotor.setPower(-0.75);
                     }
                     robot.liftMotor.setPower(0);
                     turnClawOut();
-                    retractBlockPusher();
+                    retractSpanker();
 
                     //Wait until dropping the block is requested, then let go of the block and turn the claw back in
                     while(!blockDropped){
                         if(dropBlockRequested){
-                            raiseClaw();
+                            openClaw();
                             sleep(500);
+                            closeClaw();
                             turnClawIn();
                             blockDropped = true;
                         }
                     }
-                    sleep(1000);
+                    sleep(750);
 
-                    //Lower the lift back down
+                    //Lower the lift back down and open the claw
                     while(!touch.isPressed()){
-                        robot.liftMotor.setPower(0.5);
+                        robot.liftMotor.setPower(0.15);
                     }
                     robot.liftMotor.setPower(0.0);
+                    openClaw();
+
+                    robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
                     //Reset all the conditions to false
                     dropBlockRequested = false;

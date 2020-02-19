@@ -64,7 +64,9 @@ public class DriverControlledExperimental extends OpMode{
         int gibbonSoundEffect = hardwareMap.appContext.getResources().getIdentifier("gibbon",
                 "raw", hardwareMap.appContext.getPackageName());
         SoundPlayer.getInstance().startPlaying(hardwareMap.appContext, gibbonSoundEffect); //Okay now this is pure comedy
-    }                                                                                      //Sound effect will play ONCE upon pressing play
+
+    }
+
 
     // loop on start()
     @Override
@@ -96,7 +98,8 @@ public class DriverControlledExperimental extends OpMode{
         double v2 = radius * Math.sin(ang) - turnCon;
         double v3 = radius * Math.sin(ang) + turnCon;
         double v4 = radius * Math.cos(ang) - turnCon;
-        // Sets power of motor, spins wheels
+        double leftD;
+        double rightD;
 
         if (G1b){
             slowCon = .3;
@@ -122,8 +125,8 @@ public class DriverControlledExperimental extends OpMode{
 
         if(gamepad1.x){
             alignWithFoundation();
-            alignWithBlock();
-            correctDistanceToFoundation();
+            //alignWithBlock();
+            //correctDistanceToFoundation();
         }
 
         if(gamepad2.dpad_left){
@@ -139,12 +142,11 @@ public class DriverControlledExperimental extends OpMode{
         robot.leftRear.setPower(v3*slowCon );
         robot.rightRear.setPower(v4*slowCon );
 
-        telemetry.addData("Lift Motor Encoder Position:", robot.liftMotor.getCurrentPosition());
-        telemetry.addData("Powers:", v1);
-        telemetry.addData("", v2);
-        telemetry.addData("", v3);
-        telemetry.addData("", v4);
-        telemetry.addData("Magnet:", magnet.getState());
+        leftD = leftPlatformDistance.getDistance(DistanceUnit.CM);
+        rightD = rightPlatformDistance.getDistance(DistanceUnit.CM);
+        telemetry.addData("leftD:", leftD);
+        telemetry.addData("rightD:", rightD);
+        telemetry.update();
         telemetry.update();
     }
 
@@ -167,6 +169,9 @@ public class DriverControlledExperimental extends OpMode{
                 robot.rightFront.setPower(TURN_POWER);
                 robot.leftRear.setPower(-TURN_POWER);
                 robot.rightRear.setPower(TURN_POWER);
+                telemetry.addData("leftD:", leftD);
+                telemetry.addData("rightD:", rightD);
+                telemetry.update();
             }
         }
         else if(rightD > leftD){
@@ -178,6 +183,9 @@ public class DriverControlledExperimental extends OpMode{
                 robot.rightFront.setPower(-TURN_POWER);
                 robot.leftRear.setPower(TURN_POWER);
                 robot.rightRear.setPower(-TURN_POWER);
+                telemetry.addData("leftD:", leftD);
+                telemetry.addData("rightD:", rightD);
+                telemetry.update();
             }
         }
 

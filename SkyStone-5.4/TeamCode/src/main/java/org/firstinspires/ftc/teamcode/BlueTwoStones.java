@@ -16,6 +16,7 @@ public class BlueTwoStones extends PositionBasedAuton {
     public void drive(){
 
         if(getStoneConfig().equals("Left")){
+            /*
             //Drive up to the left block, turn 45 degrees, turn on the intake, then drive into the left block
             driveToPosition(16.0, 36.0, DRIVE_SPEED, 90, 0.0, 40.0, 10, positioning, sensing);
             turn(45.0, TURN_SPEED, positioning);
@@ -28,10 +29,9 @@ public class BlueTwoStones extends PositionBasedAuton {
             driveToPosition( -36, 32.0, DRIVE_SPEED, 90, 0.0, 30.0, 10, positioning, sensing);
             turn(180, TURN_SPEED, positioning);
             sensing.dropBlock();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            while(!sensing.isBlockDropped()){
+                telemetry.addData("Motor Enc Pos:", sensing.getEncPos());
+                telemetry.update();
             }
             turn(90, TURN_SPEED, positioning);
 
@@ -46,15 +46,13 @@ public class BlueTwoStones extends PositionBasedAuton {
             driveToPosition( -36, 32.0, DRIVE_SPEED, 90, 0.0, 35.0, 10, positioning, sensing);
             turn(180, TURN_SPEED, positioning);
             sensing.dropBlock();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            sleep(5000);
             turn(90, TURN_SPEED, positioning);
 
             //Drive to park under the skybridge, far from the wall
             driveToPosition( 0, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+
+             */
         }
 
 
@@ -62,48 +60,49 @@ public class BlueTwoStones extends PositionBasedAuton {
 
         else if(getStoneConfig().equals("Middle")){
             //Drive up to the middle block, turn on the intake, then drive into the middle block
-            driveToPosition(20.0, 49.0, DRIVE_SPEED, 90, 0.0, 40.0, 10, positioning, sensing);
+            driveToPosition(17.0, 49.0, DRIVE_SPEED, 90, 0.0, true, 10, positioning, sensing);
             sensing.activateIntake();
-            driveToPosition(23.0, 49.0, DRIVE_SPEED, 90, 0.0, 12.0, 10, positioning, sensing);
+            driveToPosition(25.0, 49.0, 0.5, 90, 0.0, false, 10, positioning, sensing);
 
             //Drive back towards the wall, drive to the platform, turn to face it, drop the block onto it, then turn back to face the quarry
-            driveToPosition( 23, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
-            driveToPosition( -36, 32.0, DRIVE_SPEED, 90, 0.0, 30.0, 10, positioning, sensing);
+            driveToPosition( 25, 34.0, 0.5, 90, 0.0, false, 10, positioning, sensing);
+            driveToPosition( -38, 34.0, DRIVE_SPEED, 90, 0.0, true, 10, positioning, sensing);
             turn(180, TURN_SPEED, positioning);
+            driveToPosition( -38, 38.0, 0.5, 180, 0.0, false, 10, positioning, sensing);
             sensing.dropBlock();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            while(!sensing.isBlockDropped()){
+                telemetry.addData("Motor Enc Pos:", sensing.getEncPos());
+                telemetry.update();
             }
+            driveToPosition( -38, 34.0, 0.5, 180, 0.0, false, 10, positioning, sensing);
             turn(90, TURN_SPEED, positioning);
 
             //Drive back to the quarry, drive up to the far middle block, turn on the intake, then drive into the far middle block
-            driveToPosition( 46, 32.0, DRIVE_SPEED, 90, 0.0, 60.0, 10, positioning, sensing);
-            driveToPosition( 46, 49.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+            driveToPosition( 44, 34.0, DRIVE_SPEED, 90, 0.0, true, 10, positioning, sensing);
+            driveToPosition( 44, 50.0, 0.5, 90, 0.0, false, 10, positioning, sensing);
             sensing.activateIntake();
-            driveToPosition( 49, 49.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+            driveToPosition( 49, 50.0, 0.5, 90, 0.0, false, 10, positioning, sensing);
 
             //Drive back towards the wall, drive to the platform, turn to face it, drop the block onto it, then turn back to face the quarry
-            driveToPosition( 49, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
-            driveToPosition( -36, 32.0, DRIVE_SPEED, 90, 0.0, 35.0, 10, positioning, sensing);
+            driveToPosition( 49, 34.0, 0.5, 90, 0.0, false, 10, positioning, sensing);
+            driveToPosition( -42, 34.0, DRIVE_SPEED, 90, 0.0, true, 10, positioning, sensing);
             turn(180, TURN_SPEED, positioning);
+            driveToPosition( -42, 38.0, 0.5, 180, 0.0, false, 10, positioning, sensing);
             sensing.dropBlock();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            while(!sensing.isBlockDropped()){
+                telemetry.addData("Motor Enc Pos:", sensing.getEncPos());
+                telemetry.update();
             }
-            turn(90, TURN_SPEED, positioning);
 
             //Drive to park under the skybridge, far from the wall
-            driveToPosition( 0, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+            driveToPosition( 0, 36.0, DRIVE_SPEED, 180, 0.0, true, 10, positioning, sensing);
         }
 
 
 
 
         else if(getStoneConfig().equals("Right")){
+            /*
             //Drive up to the right block, turn on the intake, then drive into the right block
             driveToPosition(28.0, 49.0, DRIVE_SPEED, 90, 0.0, 40.0, 10, positioning, sensing);
             sensing.activateIntake();
@@ -114,10 +113,9 @@ public class BlueTwoStones extends PositionBasedAuton {
             driveToPosition( -36, 32.0, DRIVE_SPEED, 90, 0.0, 30.0, 10, positioning, sensing);
             turn(180, TURN_SPEED, positioning);
             sensing.dropBlock();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            while(!sensing.isBlockDropped()){
+                telemetry.addData("Motor Enc Pos:", sensing.getEncPos());
+                telemetry.update();
             }
             turn(90, TURN_SPEED, positioning);
 
@@ -132,19 +130,22 @@ public class BlueTwoStones extends PositionBasedAuton {
             driveToPosition( -36, 32.0, DRIVE_SPEED, 90, 0.0, 35.0, 10, positioning, sensing);
             turn(180, TURN_SPEED, positioning);
             sensing.dropBlock();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            while(!sensing.isBlockDropped()){
+                telemetry.addData("Motor Enc Pos:", sensing.getEncPos());
+                telemetry.update();
             }
             turn(90, TURN_SPEED, positioning);
 
             //Drive to park under the skybridge, far from the wall
             driveToPosition( 0, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
+
+             */
         }
 
         telemetry.addData("Status:", "Finished Driving");
         telemetry.update();
+
+
     }
 
 }

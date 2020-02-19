@@ -25,7 +25,6 @@ public class DriverControlled extends OpMode{
     double slowCon = 1.0;
     int pos = 0;
 
-    private DistanceSensor distance;
     private TouchSensor touch;
     DigitalChannel magnet;
 
@@ -34,10 +33,8 @@ public class DriverControlled extends OpMode{
     public void init() {
         robot.init(hardwareMap);
         robot.liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        distance = hardwareMap.get(DistanceSensor.class, "distance");
-        Rev2mDistanceSensor sensorTimeOfFlight = (Rev2mDistanceSensor)distance;
         touch = hardwareMap.touchSensor.get("touch");
         magnet = hardwareMap.get(DigitalChannel.class, "magnet");
         magnet.setMode(DigitalChannel.Mode.INPUT);
@@ -120,23 +117,27 @@ public class DriverControlled extends OpMode{
         // lift code
         if (G2up && magnet.getState())
         {
-            robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            robot.liftMotor.setPower(-0.5);
-            pos = robot.liftMotor.getCurrentPosition();
+            //robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            robot.liftMotor.setPower(-0.75);
+            //pos = robot.liftMotor.getCurrentPosition();
         }
         else if (G2down && !touch.isPressed())
         {
-            robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            //robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             robot.liftMotor.setPower(0.2);
-            pos = robot.liftMotor.getCurrentPosition();
+            //pos = robot.liftMotor.getCurrentPosition();
         }
         else
         {
+            robot.liftMotor.setPower(0.0);
+            /*
             robot.liftMotor.setTargetPosition(pos);
             robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             robot.liftMotor.setPower(1);
             telemetry.addData("Staying at:", robot.liftMotor.getCurrentPosition());
             telemetry.update();
+
+             */
         }
 
         //servos

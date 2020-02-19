@@ -14,7 +14,7 @@ public class BlueTwoStonesMovePlat extends PositionBasedAuton {
 
     @Override
     public void drive(){
-
+        /*
         if(getStoneConfig().equals("Left")){
             //Drive up to the left block, turn 45 degrees, turn on the intake, then drive into the left block
             driveToPosition(16.0, 36.0, DRIVE_SPEED, 90, 0.0, 40.0, 10, positioning, sensing);
@@ -154,6 +154,8 @@ public class BlueTwoStonesMovePlat extends PositionBasedAuton {
             //Drive to park under the skybridge, far from the wall
             driveToPosition( 0, 32.0, DRIVE_SPEED, 90, 0.0, 20.0, 10, positioning, sensing);
         }
+
+         */
 
         telemetry.addData("Status:", "Finished Driving");
         telemetry.update();
