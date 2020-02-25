@@ -24,12 +24,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public abstract class PositionBasedAuton extends LinearOpMode {
+public abstract class PositionBasedAuton2 extends LinearOpMode {
 
     private final double ANGLE_THRESHOLD = 3.0;
     public final double TURN_SPEED = 0.7;
     public final double TURN_SPEED_HIGH = 1.0;
-    public final double DRIVE_SPEED = 1.0;
+    public final double DRIVE_SPEED = 0.5;
     public final double DRIVE_SPEED_HIGH = 1.0;
     private final int THREAD_SLEEP_DELAY = 50;
     private final double MINIMUM_POWER = 0.2;
@@ -47,17 +47,17 @@ public abstract class PositionBasedAuton extends LinearOpMode {
     private ElapsedTime moveTimer = new ElapsedTime();
     private ElapsedTime successTimer = new ElapsedTime();
     private ElapsedTime logTimer = new ElapsedTime();
-    private ElapsedTime dtDistTimer = new ElapsedTime();
     private DistanceSensor armHeightDistance;
 
     private TouchSensor touch;
 
     private OpenCvCamera phoneCam;
-    private PositionBasedAuton.DetectorPipeline detectorPipeline;
+    private PositionBasedAuton2.DetectorPipeline detectorPipeline;
     private String stoneConfig;
 
     public Positioning positioning;
     public SensorThread sensing;
+
 
     private double integral;
 
@@ -101,6 +101,7 @@ public abstract class PositionBasedAuton extends LinearOpMode {
         sensing = new SensorThread(positioning);
         Thread sensorThread = new Thread(sensing);
         sensorThread.start();
+
 
         //Init complete
         telemetry.addData("Status", "Init Complete");
@@ -159,8 +160,7 @@ public abstract class PositionBasedAuton extends LinearOpMode {
         double velocity;
         boolean isRampingDown = false;
         int successCounter = 0;
-        double  dt = 0.0;
-        double  dtDist = 0.0;
+        double  dt = 0;
         integral = 0;
 
         //Turn to the desired heading
@@ -174,14 +174,9 @@ public abstract class PositionBasedAuton extends LinearOpMode {
             isInPositiveX = positioning.isInPositiveX();
             xDistance = targetX - positioning.getX();
             yDistance = targetY - positioning.getY();
-            if(dtDistTimer.seconds() > 0.05){
-                dtDist = dtDistTimer.seconds();
-                previousDistance = distance;
-                dtDistTimer.reset();
-            }
             distance = Math.hypot(xDistance, yDistance);
             movementAngle = Math.toDegrees(Math.atan2(xDistance, yDistance)) - positioning.getOrientation();
-            velocity = (previousDistance - distance) / dtDist; //Calculated in inches/second
+            velocity = (distance - previousDistance) / dt; //Calculated in inches/second
 
             error = getError(heading, positioning);
             pidTimer.reset();
@@ -261,15 +256,15 @@ public abstract class PositionBasedAuton extends LinearOpMode {
                 rLeft = rLeft * (rampUpPercent);
                 rRight = rRight * (rampUpPercent);
             }
-            else if(distance < (startDistance / 3.0) && rampDown)
+            else if(distance < 4.0 && rampDown)
                 isRampingDown = true;
 
             //Ramp down the motor powers
             if(isRampingDown){
-                fLeft = fLeft * (0.25);
-                fRight = fRight * (0.25);
-                rLeft = rLeft * (0.25);
-                rRight = rRight * (0.25);
+                fLeft = fLeft * (0.5);
+                fRight = fRight * (0.5);
+                rLeft = rLeft * (0.5);
+                rRight = rRight * (0.5);
             }
 
             //Provide steer to the motors based off the PID
@@ -333,7 +328,7 @@ public abstract class PositionBasedAuton extends LinearOpMode {
 
              */
 
-
+            previousDistance = distance;
 
             //Display Global (x, y, theta) coordinates
             telemetry.addData("Lift Encoder Pos", robot.liftMotor.getCurrentPosition());
@@ -345,18 +340,17 @@ public abstract class PositionBasedAuton extends LinearOpMode {
             telemetry.addData("Left  Rear Motor P:", robot.leftRear.getPower());
             telemetry.addData("Right Rear Motor P:", robot.rightRear.getPower());
             telemetry.update();
-            if ( logTimer.milliseconds() > 50 ) {
+            if ( logTimer.milliseconds() > 100 ) {
                 log += "Runtime::" + runTime.seconds() + "\n\t X Pos:: " + positioning.getX()
                         + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n\t"
                         + "FL Motor Power:: " + robot.leftFront.getPower() + " BL Motor Power:: " + robot.leftRear.getPower() + " FR Motor Power:: " +
-                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n\t" + "Velocity:: " + velocity +  " Previous Distance:: " + previousDistance + " Distance:: " + distance + " dt:: " + dtDist + "\n"  ;
+                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n\t" + "Velocity:: " + velocity + "\n" ;
 
                 logTimer.reset();
             }
 
             //Set the time difference for the derivative
             dt = pidTimer.seconds();
-
 
         }
 
@@ -542,11 +536,36 @@ public abstract class PositionBasedAuton extends LinearOpMode {
         }
     }
 
+    /*
+    public class ThreadWatchDog implements Runnable{
+        private ElapsedTime runningTime = new ElapsedTime();
+        private boolean isRunning = true;
+
+        public void startTime(){
+            runningTime.reset();
+        }
+        public void stop(){
+            isRunning = false;
+        }
+
+        public void run(){
+            while(isRunning){
+                if(runningTime.seconds() > 28.0){
+                    positioning.stop();
+                    sensing.stop();
+                }
+            }
+        }
+    }
+
+     */
+
     public class SensorThread implements Runnable{
 
         private boolean isRunning = true;
         private boolean dropBlockRequested = false;
         private boolean intakeActivated = false;
+        private boolean outtakeActivated = false;
         private boolean blockDropped = false;
         private Positioning positioning;
         private ElapsedTime liftTimer = new ElapsedTime();
@@ -575,6 +594,8 @@ public abstract class PositionBasedAuton extends LinearOpMode {
         public void activateIntake(){
             intakeActivated = true;
         }
+
+        public void activateOuttake(){ outtakeActivated = true;}
 
         public void dropBlock(){
             dropBlockRequested = true;
@@ -613,6 +634,11 @@ public abstract class PositionBasedAuton extends LinearOpMode {
             robot.rightIn.setPower(-.7);
         }
 
+        private void turnOnIntakeReversed(){
+            robot.leftIn.setPower(1.0);
+            robot.rightIn.setPower(1.0);
+        }
+
         private void turnOffIntake(){
             robot.leftIn.setPower(0.0);
             robot.rightIn.setPower(0.0);
@@ -628,62 +654,23 @@ public abstract class PositionBasedAuton extends LinearOpMode {
 
          @Override
          public void run(){
-            while(isRunning  && opModeIsActive()){
-                if(intakeActivated && opModeIsActive()){
-                    //Turn on the intake and keep it on until a block is inside the robot
-                    robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            while(isRunning){
+                if(intakeActivated){
+
                     turnOnIntake();
-                    while(!(robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5) && opModeIsActive())
+                    while(!(robot.blockInSensor.getDistance(DistanceUnit.INCH) < 4.0) && isRunning)
+                        sleep(50);
+                    turnOffIntake();
+                    intakeActivated = false;
+
+                }
+                else if(outtakeActivated){
+                    turnOnIntakeReversed();
+                    while((robot.blockInSensor.getDistance(DistanceUnit.INCH) < 4.0) && isRunning)
                         sleep(50);
                     turnOffIntake();
 
-                    //Push the block into place and lower claw onto it only partially
-                    activateSpanker();
-                    sleep(250);
-                    closeClaw();
-
-                    //Wait until the robot has crossed into positive x
-                    /*
-                    while (positioning.getX() > 0)
-                        telemetry.addData("Status:", "Waiting to cross axis");
-
-                     */
-
-                    xPos = positioning.getX();
-                    //Grab the block with the claw and raise the lift into position then turn the claw out
-                    while(armHeightDistance.getDistance(DistanceUnit.INCH) < 8.5 && xPos < 0 && opModeIsActive()) {
-                        robot.liftMotor.setPower(-0.75);
-                        xPos = positioning.getX();
-                    }
-                    robot.liftMotor.setPower(0);
-                    turnClawOut();
-                    retractSpanker();
-
-                    //Wait until dropping the block is requested, then let go of the block and turn the claw back in
-                    while(!blockDropped && opModeIsActive()){
-                        if(dropBlockRequested && opModeIsActive()){
-                            openClaw();
-                            sleep(500);
-                            closeClaw();
-                            turnClawIn();
-                            blockDropped = true;
-                        }
-                    }
-                    sleep(750);
-
-                    //Lower the lift back down and open the claw
-                    while(!touch.isPressed() && opModeIsActive()){
-                        robot.liftMotor.setPower(0.15);
-                    }
-                    robot.liftMotor.setPower(0.0);
-                    openClaw();
-
-                    robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-                    //Reset all the conditions to false
-                    dropBlockRequested = false;
-                    blockDropped = false;
-                    intakeActivated = false;
+                    outtakeActivated = false;
                 }
 
             }

@@ -137,6 +137,10 @@ public class Positioning implements Runnable {
         return yPos;
     }
 
+    public boolean isInPositiveX(){
+        return xPos > 0.0;
+    }
+
     public double getOrientation(){
         return orientation;
     }

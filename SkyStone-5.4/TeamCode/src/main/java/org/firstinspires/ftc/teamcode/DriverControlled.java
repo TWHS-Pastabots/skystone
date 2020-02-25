@@ -22,11 +22,13 @@ public class DriverControlled extends OpMode{
     /* Declare OpMode members. */
     RobotHardware robot = new RobotHardware();
     ElapsedTime runTime= new ElapsedTime();
-    double slowCon = 1.0;
+    ElapsedTime backTimer2 = new ElapsedTime();
+    boolean isBlockPush = false;
+    double slowCon = 0.8;
     int pos = 0;
 
-    private TouchSensor touch;
-    DigitalChannel magnet;
+    //private TouchSensor touch;
+    //DigitalChannel magnet;
 
     //run once on init()
     @Override
@@ -35,9 +37,9 @@ public class DriverControlled extends OpMode{
         robot.liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        touch = hardwareMap.touchSensor.get("touch");
-        magnet = hardwareMap.get(DigitalChannel.class, "magnet");
-        magnet.setMode(DigitalChannel.Mode.INPUT);
+        //touch = hardwareMap.touchSensor.get("touch");
+        //magnet = hardwareMap.get(DigitalChannel.class, "magnet");
+        //magnet.setMode(DigitalChannel.Mode.INPUT);
 
         robot.clawT.setPosition(1);
 
@@ -64,9 +66,9 @@ public class DriverControlled extends OpMode{
     @Override
     public void loop() {
 
-        double G1leftStickX = -gamepad1.right_stick_x;
+        double G1leftStickX = gamepad1.right_stick_x; //Changed to negative
         double G1leftStickY = -gamepad1.right_stick_y;
-        double turnCon = gamepad1.left_stick_x;
+        double turnCon = gamepad1.left_stick_x*.75;
         boolean G1a = gamepad1.a;
         boolean G1b = gamepad1.b;
         boolean G2a = gamepad2.a;
@@ -97,6 +99,9 @@ public class DriverControlled extends OpMode{
 
         }
         if (G1a){
+            slowCon = .8;
+        }
+        if (gamepad1.x){
             slowCon = 1.0;
         }
 
@@ -115,16 +120,16 @@ public class DriverControlled extends OpMode{
         }
 
         // lift code
-        if (G2up && magnet.getState())
+        if (G2up)
         {
             //robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             robot.liftMotor.setPower(-0.75);
             //pos = robot.liftMotor.getCurrentPosition();
         }
-        else if (G2down && !touch.isPressed())
+        else if (G2down)
         {
             //robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            robot.liftMotor.setPower(0.2);
+            robot.liftMotor.setPower(0.4);
             //pos = robot.liftMotor.getCurrentPosition();
         }
         else
@@ -151,6 +156,12 @@ public class DriverControlled extends OpMode{
             robot.leftH.setPosition(1);
             robot.rightH.setPosition(0);
         }
+
+        if(gamepad2.back && backTimer2.seconds() > 1.0){
+            isBlockPush = !isBlockPush;
+            backTimer2.reset();
+        }
+
         // claw
         if (G2a)
         {
@@ -210,17 +221,31 @@ public class DriverControlled extends OpMode{
 
          */
 
+        if(gamepad1.dpad_up){
+            robot.tape.setPower(-1.0);
+        }
+        else if(gamepad1.dpad_down){
+            robot.tape.setPower(1.0);
+        }
+        else
+            robot.tape.setPower(0.0);
+
         robot.leftFront.setPower(v1*slowCon );
         robot.rightFront.setPower(v2*slowCon );
         robot.leftRear.setPower(v3*slowCon );
         robot.rightRear.setPower(v4*slowCon );
 
+        if(isBlockPush)
+            robot.servo_blockPush.setPosition(0.0);
+        else
+            robot.servo_blockPush.setPosition(1.0);
+
         telemetry.addData("Lift Motor Encoder Position:", robot.liftMotor.getCurrentPosition());
+        telemetry.addData("Color:", robot.colorSensor.blue());
         telemetry.addData("Powers:", v1);
         telemetry.addData("", v2);
         telemetry.addData("", v3);
         telemetry.addData("", v4);
-        telemetry.addData("Magnet:", magnet.getState());
         //telemetry.addData("range", String.format("%.01f cm", distance.getDistance(DistanceUnit.CM)));
         telemetry.update();
     }
