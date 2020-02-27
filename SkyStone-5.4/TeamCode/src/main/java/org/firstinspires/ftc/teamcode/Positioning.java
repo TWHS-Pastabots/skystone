@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
@@ -42,6 +43,12 @@ public class Positioning implements Runnable {
     //The coordinates of the robot on the field, in inches
     private double xPos;
     private double yPos;
+    private double xPosPrev;
+    private double yPosPrev;
+
+    //The current velocity of the robot, in inches per second
+    private double velocity;
+    private ElapsedTime vTimer = new ElapsedTime();
 
     //Files used for retrieving the tick offsets
     private File horizontalTickOffsetFile = AppUtil.getInstance().getSettingsFile("horizontalTickOffset.txt");
@@ -71,6 +78,8 @@ public class Positioning implements Runnable {
         this.previousOrientation = startOrientation;
         this.xPos = startX;
         this.yPos = startY;
+        this.xPosPrev = startX;
+        this.yPosPrev = startY;
 
 
         this.verticalLeftEncoderTickOffsetPerDegree = Double.parseDouble(ReadWriteFile.readFile(verticalLeftTickOffestFile).trim());
@@ -82,6 +91,7 @@ public class Positioning implements Runnable {
     private void updatePosition () {
         //Find the current values for the encoders and orientation
         updateOrientation();
+        updateVelocity();
         verticalLeftEncoderPosition = leftEnc.getCurrentPosition();
         verticalRightEncoderPosition = rightEnc.getCurrentPosition();
         horizontalEncoderPosition = horizEnc.getCurrentPosition();
@@ -96,6 +106,8 @@ public class Positioning implements Runnable {
         double orientationRadians = Math.toRadians(orientation);
 
         //Calculate and update the position
+        xPosPrev = xPos;
+        yPosPrev = yPos;
         xPos += (v*Math.sin(orientationRadians) + h*Math.cos(orientationRadians)) / COUNTS_PER_INCH;
         yPos += (v*Math.cos(orientationRadians) - h*Math.sin(orientationRadians)) / COUNTS_PER_INCH;
 
@@ -120,6 +132,19 @@ public class Positioning implements Runnable {
         orientation += rawOrientationChange;
     }
 
+    private void updateVelocity(){
+        double deltaX = xPos - xPosPrev;
+        double deltaY = yPos - yPosPrev;
+        double dt = vTimer.seconds();
+
+        //Calculate the velocity as the overall change in distance over the time the move took
+        velocity = Math.hypot(deltaX, deltaY) / dt;
+
+        //Reset the velocity timer
+        vTimer.reset();
+
+    }
+
     //Returns the raw angle provided by the imu, and flips it so negative is left
     private double getAngle(){
         return -imu.getAngularOrientation().firstAngle;
@@ -135,6 +160,10 @@ public class Positioning implements Runnable {
 
     public double getY(){
         return yPos;
+    }
+
+    public double getVelocity(){
+        return velocity;
     }
 
     public boolean isInPositiveX(){

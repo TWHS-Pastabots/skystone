@@ -24,7 +24,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-public abstract class PositionBasedAuton extends LinearOpMode {
+public abstract class PositionBasedAuton3 extends LinearOpMode {
 
     private final double ANGLE_THRESHOLD = 3.0;
     public final double TURN_SPEED = 0.7;
@@ -34,11 +34,12 @@ public abstract class PositionBasedAuton extends LinearOpMode {
     private final int THREAD_SLEEP_DELAY = 50;
     private final double MINIMUM_POWER = 0.2;
 
-    private static final double hKp = 0.003;
-    private static final double hKi = 0.003;
+    private static final double hKp = 0.005;
+    private static final double hKi = 0.002;
     private static final double hKd = 0.000;
-    private static final double vKp = 0.003;
-    private static final double vKi = 0.003;
+
+    private static final double vKp = 0.001;
+    private static final double vKi = 0.001;
     private static final double vKd = 0.000;
 
     public double startX = 0.0;
@@ -57,7 +58,7 @@ public abstract class PositionBasedAuton extends LinearOpMode {
     private TouchSensor touch;
 
     private OpenCvCamera phoneCam;
-    private PositionBasedAuton.DetectorPipeline detectorPipeline;
+    private PositionBasedAuton3.DetectorPipeline detectorPipeline;
     private String stoneConfig;
 
     public Positioning positioning;
@@ -146,19 +147,22 @@ public abstract class PositionBasedAuton extends LinearOpMode {
     public abstract void drive();
 
 
-    public void driveToPosition(double targetX, double targetY, double speed, double heading, double rampUpTimeS, boolean rampDown, double timeoutS, Positioning positioning, SensorThread sensing){
+    public void driveToPosition(double targetX, double targetY, double velocity, double heading, double rampUpTimeS, boolean rampDown, double rampDownDistance, double rampDownCoeff, double timeoutS, Positioning positioning, SensorThread sensing){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
         double startDistance = distance;
         double movementAngle;
 
-        double fLeft = 0;
-        double fRight = 0;
-        double rLeft = 0;
-        double rRight = 0;
+        double fLeft;
+        double fRight;
+        double rLeft;
+        double rRight;
+        double speed = 0;
         double headingError;
         double velocityError;
+        double targetVelocity = velocity;
+        double startTargetVelocity = velocity;
         double steer;
         double speedChange;
         double previousHeadingError = 0;
@@ -196,6 +200,10 @@ public abstract class PositionBasedAuton extends LinearOpMode {
             steer = getSteerPID(headingError, previousHeadingError, dt, hKp, hKi, hKd);
             previousHeadingError = headingError;
 
+            //Calc the velocity PID
+            velocityError = targetVelocity - positioning.getVelocity(); //If error is positive, need to increae velocity
+            speedChange = getVelocityPID(velocityError, previousVelocityError, dt, vKp, vKi, vKd );
+            previousVelocityError = velocityError;
 
             //Convert the movement angle, which is relative to the y-axis to be relative to the x-axis for future calculations
             double angleXAxis = 90 - movementAngle;
@@ -204,10 +212,12 @@ public abstract class PositionBasedAuton extends LinearOpMode {
             else if(angleXAxis < -180)
                 angleXAxis += 360;
 
-            fLeft = 0;
+            fLeft = 0.0;
             fRight = 0;
             rLeft = 0;
             rRight = 0;
+
+            speed = Range.clip(speed + ( ((int)(speedChange * 10000)) / 10000.0), 0.0, 1.0 );
 
             //Calculate the speeds based on the quadrant the robot is traveling to
             if(angleXAxis > 0 && angleXAxis < 90) {  //First Quadrant
@@ -270,15 +280,21 @@ public abstract class PositionBasedAuton extends LinearOpMode {
                 rLeft = rLeft * (rampUpPercent);
                 rRight = rRight * (rampUpPercent);
             }
-            else if(distance < (startDistance / 3) && rampDown)
-                isRampingDown = true;
+            else if(distance < (startDistance / 2.0) && rampDown)
+                targetVelocity = velocity / 2.0;
+            else if(distance < (startDistance / 3.0) && rampDown)
+                targetVelocity = velocity / 3.0;
+            else if(distance < (startDistance / 4.0) && rampDown)
+                targetVelocity = velocity / 4.0;
+            else if(distance < (5) && rampDown)
+                targetVelocity = 5.0;
 
             //Ramp down the motor powers
             if(isRampingDown){
-                fLeft = fLeft * (0.2);
-                fRight = fRight * (0.2);
-                rLeft = rLeft * (0.2);
-                rRight = rRight * (0.2);
+                fLeft = fLeft * (rampDownCoeff);
+                fRight = fRight * (rampDownCoeff);
+                rLeft = rLeft * (rampDownCoeff);
+                rRight = rRight * (rampDownCoeff);
             }
 
 
@@ -350,6 +366,10 @@ public abstract class PositionBasedAuton extends LinearOpMode {
             telemetry.addData("X Position", positioning.getX());
             telemetry.addData("Y Position", positioning.getY());
             telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
+            telemetry.addData("Velocity:", positioning.getVelocity());
+            telemetry.addData("Velocity Error:", velocityError);
+            telemetry.addData("Speed Change:", speedChange);
+            telemetry.addData("Speed:", speed);
             telemetry.addData("Left  Front Motor P:", robot.leftFront.getPower());
             telemetry.addData("Right  Front Motor P:", robot.rightFront.getPower());
             telemetry.addData("Left  Rear Motor P:", robot.leftRear.getPower());
@@ -359,7 +379,8 @@ public abstract class PositionBasedAuton extends LinearOpMode {
                 log += "Runtime::" + runTime.seconds() + "\n\t X Pos:: " + positioning.getX()
                         + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n\t"
                         + "FL Motor Power:: " + robot.leftFront.getPower() + " BL Motor Power:: " + robot.leftRear.getPower() + " FR Motor Power:: " +
-                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n" ;
+                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n\t" + "Velocity:: " + velocity +  " Previous Distance:: "
+                        + previousDistance + " Distance:: " + distance + " dt:: " + dtDist + "\n"   ;
 
                 logTimer.reset();
             }
@@ -456,7 +477,7 @@ public abstract class PositionBasedAuton extends LinearOpMode {
     public double getVelocityPID(double error, double previousError, double dt, double Kp, double Ki, double Kd){
         velocityIntegral = velocityIntegral + (error * dt);
         double derivative = (error - previousError) / dt;
-        return (error * Kp) + (Ki * steerIntegral) + (Kd * derivative);
+        return (error * Kp) + (Ki * velocityIntegral) + (Kd * derivative);
     }
 
     private void writeToFile (String log, File f)  throws IOException {

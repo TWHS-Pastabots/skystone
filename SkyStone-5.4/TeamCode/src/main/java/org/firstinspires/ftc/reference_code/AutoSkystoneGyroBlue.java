@@ -549,7 +549,7 @@ public class AutoSkystoneGyroBlue extends LinearOpMode {
     }
 
     /**
-     * getError determines the error between the target angle and the robot's current heading
+     * getHeadingError determines the error between the target angle and the robot's current heading
      * @param   targetAngle  Desired angle (relative to global reference established at last Gyro Reset).
      * @return  error angle: Degrees in the range +/- 180. Centered on the robot's frame of reference
      *          +ve error means the robot should turn LEFT (CCW) to reduce error.
