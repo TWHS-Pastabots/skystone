@@ -66,9 +66,9 @@ public class DriverControlled extends OpMode{
     @Override
     public void loop() {
 
-        double G1leftStickX = gamepad1.right_stick_x; //Changed to negative
-        double G1leftStickY = -gamepad1.right_stick_y;
-        double turnCon = gamepad1.left_stick_x*.75;
+        double G1leftStickX = gamepad1.left_stick_x; //Changed to negative
+        double G1leftStickY = -gamepad1.left_stick_y;
+        double turnCon = gamepad1.right_stick_x*.75;
         boolean G1a = gamepad1.a;
         boolean G1b = gamepad1.b;
         boolean G2a = gamepad2.a;
