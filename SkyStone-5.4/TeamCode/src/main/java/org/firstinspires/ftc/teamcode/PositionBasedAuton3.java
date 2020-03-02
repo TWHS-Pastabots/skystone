@@ -147,7 +147,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
     public abstract void drive();
 
 
-    public void driveToPosition(double targetX, double targetY, double velocity, double heading, double rampUpTimeS, boolean rampDown, double rampDownDistance, double rampDownCoeff, double timeoutS, Positioning positioning, SensorThread sensing){
+    public void driveToPosition(double targetX, double targetY, double velocity, double heading, double rampUpTimeS, boolean rampDown, double timeoutS, Positioning positioning, SensorThread sensing){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
@@ -273,7 +273,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             //Ramp up the motor powers
             if(rampUpTimeS > moveTimer.seconds()) {
                 double rampUpPercent = moveTimer.seconds() / rampUpTimeS;
-                if(rampUpPercent < 0.5);
+                if(rampUpPercent < 0.5)
                     rampUpPercent = 0.5;
                 fLeft = fLeft * (rampUpPercent);
                 fRight = fRight * (rampUpPercent);
@@ -289,22 +289,11 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             else if(distance < (5) && rampDown)
                 targetVelocity = 5.0;
 
-            //Ramp down the motor powers
-            if(isRampingDown){
-                fLeft = fLeft * (rampDownCoeff);
-                fRight = fRight * (rampDownCoeff);
-                rLeft = rLeft * (rampDownCoeff);
-                rRight = rRight * (rampDownCoeff);
-            }
-
-
             //Provide steer to the motors based off the PID
-            if(!isRampingDown) {
-                fLeft += steer;
-                rLeft += steer;
-                fRight -= steer;
-                rRight -= steer;
-            }
+            fLeft += steer;
+            rLeft += steer;
+            fRight -= steer;
+            rRight -= steer;
 
             //Make sure there is a minimum power being provided to the motors during a ramp down or up
             /*
@@ -511,7 +500,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         private final Scalar WHITE = new Scalar(256, 256, 256);
         private final int r = 10;
         private final int cx0 = 40, cx1 = 130, cx2 = 210;// Width=320 Height=240
-        private final int cy0 = 60, cy1 = 60, cy2 = 60;
+        private final int cy0 = 75, cy1 = 75, cy2 = 75;
 
         private String detectedPos;
 
@@ -613,6 +602,10 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             intakeActivated = true;
         }
 
+        public void deActivateIntake(){
+            intakeActivated = false;
+        }
+
         public void dropBlock(){
             dropBlockRequested = true;
         }
@@ -670,8 +663,8 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                     //Turn on the intake and keep it on until a block is inside the robot
                     robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                     turnOnIntake();
-                    while(!(robot.blockInSensor.getDistance(DistanceUnit.INCH) > 0.5) && opModeIsActive())
-                        sleep(50);
+                    while(intakeActivated)
+                        turnOnIntake();
                     turnOffIntake();
 
                     //Push the block into place and lower claw onto it only partially
