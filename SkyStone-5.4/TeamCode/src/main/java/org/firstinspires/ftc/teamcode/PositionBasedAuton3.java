@@ -69,7 +69,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
     private File actionLogInternal = new File("C:\\Users\\Matt\\Documents\\GitHub\\skystone\\SkyStone-5.4\\TeamCode\\src\\main\\java\\org\\firstinspires\\ftc\\teamcode\\actionLog.txt");
     private File actionLog = AppUtil.getInstance().getSettingsFile("actionLog.txt");
-    String log;
+    public String log;
 
     @Override
     public void runOpMode(){
@@ -116,7 +116,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         while(!isStarted()) {
             stoneConfig = detectorPipeline.getDetectedPos();
             telemetry.addData("Stone Config: ", stoneConfig);
-            telemetry.addData("Color Distance ", robot.blockInSensor.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Height ",armHeightDistance.getDistance(DistanceUnit.INCH));
             telemetry.update();
         }
 
@@ -363,12 +363,14 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             telemetry.addData("Right  Front Motor P:", robot.rightFront.getPower());
             telemetry.addData("Left  Rear Motor P:", robot.leftRear.getPower());
             telemetry.addData("Right Rear Motor P:", robot.rightRear.getPower());
+            telemetry.addData("Left  Intake Motor P:", robot.leftIn.getPower());
+            telemetry.addData("Right Intake Motor P:", robot.rightIn.getPower());
             telemetry.update();
             if ( logTimer.milliseconds() > 50 ) {
                 log += "Runtime::" + runTime.seconds() + "\n\t X Pos:: " + positioning.getX()
                         + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n\t"
                         + "FL Motor Power:: " + robot.leftFront.getPower() + " BL Motor Power:: " + robot.leftRear.getPower() + " FR Motor Power:: " +
-                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n\t" + "Velocity:: " + velocity +  " Previous Distance:: "
+                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n\t" + "Velocity:: " + positioning.getVelocity() +  " Previous Distance:: "
                         + previousDistance + " Distance:: " + distance + " dt:: " + dtDist + "\n"   ;
 
                 logTimer.reset();
@@ -598,8 +600,9 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             isRunning = false;
         }
 
-        public void activateIntake(){
+        public String activateIntake(){
             intakeActivated = true;
+            return "worked";
         }
 
         public void deActivateIntake(){
@@ -639,8 +642,8 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         }
 
         private void turnOnIntake(){
-            robot.leftIn.setPower(-.7);
-            robot.rightIn.setPower(-.7);
+            robot.leftIn.setPower(-1.0);
+            robot.rightIn.setPower(-1.0);
         }
 
         private void turnOffIntake(){
@@ -658,13 +661,16 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
          @Override
          public void run(){
-            while(isRunning  && opModeIsActive()){
-                if(intakeActivated && opModeIsActive()){
+            while(isRunning){
+
+                if(intakeActivated ){
                     //Turn on the intake and keep it on until a block is inside the robot
                     robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
                     turnOnIntake();
-                    while(intakeActivated)
+                    while(intakeActivated ){
                         turnOnIntake();
+                    }
                     turnOffIntake();
 
                     //Push the block into place and lower claw onto it only partially
@@ -679,9 +685,10 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
                      */
 
+
                     xPos = positioning.getX();
                     //Grab the block with the claw and raise the lift into position then turn the claw out
-                    while(armHeightDistance.getDistance(DistanceUnit.INCH) < 8.5 && xPos < 0 && opModeIsActive()) {
+                    while(armHeightDistance.getDistance(DistanceUnit.INCH) < 14 && xPos < 0) {
                         robot.liftMotor.setPower(-0.75);
                         xPos = positioning.getX();
                     }
@@ -702,13 +709,13 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                     sleep(750);
 
                     //Lower the lift back down and open the claw
-                    while(!touch.isPressed() && opModeIsActive()){
+                    while(armHeightDistance.getDistance(DistanceUnit.INCH) > 2.0){
                         robot.liftMotor.setPower(0.15);
                     }
                     robot.liftMotor.setPower(0.0);
                     openClaw();
 
-                    robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                    //robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
                     //Reset all the conditions to false
                     dropBlockRequested = false;

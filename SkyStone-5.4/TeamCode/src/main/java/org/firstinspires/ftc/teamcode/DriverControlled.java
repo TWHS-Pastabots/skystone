@@ -1,7 +1,9 @@
 package org.firstinspires.ftc.teamcode;
 import com.qualcomm.ftccommon.SoundPlayer;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
@@ -95,7 +97,7 @@ public class DriverControlled extends OpMode{
         // Sets power of motor, spins wheels
 
         if (G1b){
-            slowCon = .3;
+            slowCon = .4;
 
         }
         if (G1a){
@@ -122,38 +124,35 @@ public class DriverControlled extends OpMode{
         // lift code
         if (G2up)
         {
-            //robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            robot.liftMotor.setPower(-0.75);
-            //pos = robot.liftMotor.getCurrentPosition();
+            robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            robot.liftMotor.setPower(-1);
+            pos = robot.liftMotor.getCurrentPosition();
         }
         else if (G2down)
         {
-            //robot.liftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             robot.liftMotor.setPower(0.4);
-            //pos = robot.liftMotor.getCurrentPosition();
+            pos = robot.liftMotor.getCurrentPosition();
         }
         else
         {
             robot.liftMotor.setPower(0.0);
-            /*
-            robot.liftMotor.setTargetPosition(pos);
             robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.liftMotor.setTargetPosition(pos);
             robot.liftMotor.setPower(1);
             telemetry.addData("Staying at:", robot.liftMotor.getCurrentPosition());
             telemetry.update();
-
-             */
         }
 
         //servos
-        if (G2rb)
+        if (gamepad1.right_trigger > 0.9)
+        {
+            robot.leftH.setPosition(0.75);
+            robot.rightH.setPosition(0.9);
+        }
+        else if (gamepad1.left_trigger > 0.9)
         {
             robot.leftH.setPosition(0);
-            robot.rightH.setPosition(1);
-        }
-        else if (G2lb)
-        {
-            robot.leftH.setPosition(1);
             robot.rightH.setPosition(0);
         }
 
@@ -169,7 +168,7 @@ public class DriverControlled extends OpMode{
         }
         else if (G2b)
         {
-            robot.claw.setPosition(0);
+            robot.claw.setPosition(0.5);
         }
 
         if(G2right)
@@ -179,6 +178,18 @@ public class DriverControlled extends OpMode{
         else if (G2left)
         {
             robot.clawT.setPosition(1);
+        }
+
+        if(gamepad2.right_trigger > 0.1){
+            robot.capstone.setDirection(CRServo.Direction.REVERSE);
+            robot.capstone.setPower(1.0);
+        }
+        else if (gamepad2.left_trigger > 0.1){
+            robot.capstone.setDirection(CRServo.Direction.FORWARD);
+            robot.capstone.setPower(1.0);
+        }
+        else{
+            robot.capstone.setPower(0.0);
         }
 
         /*if (G1leftStickY>.9){

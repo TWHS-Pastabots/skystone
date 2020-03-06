@@ -1,8 +1,10 @@
 package org.firstinspires.ftc.reference_code;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 @Autonomous
+@Disabled
 public class ParkingAutonWithWait extends PositionBasedAuton {
 
     public void setStartPos(){

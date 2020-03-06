@@ -2,6 +2,7 @@ package org.firstinspires.ftc.reference_code;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -31,6 +32,7 @@ import java.util.Stack;
  */
 
 @Autonomous(name="Skystone-Gyro-Blue", group = "BlueAuton")
+@Disabled
 public class AutoSkystoneGyroBlue extends LinearOpMode {
     RobotHardware robot = new RobotHardware();
     private BNO055IMU imu;

@@ -47,6 +47,7 @@ public class    RobotHardware {
     public Servo claw;
     public Servo clawT;
     public Servo servo_blockPush;
+    public CRServo capstone;
 
     public DistanceSensor blockInSensor;
     public ColorSensor colorSensor;
@@ -86,6 +87,7 @@ public class    RobotHardware {
         blockInSensor = hwMap.get(DistanceSensor.class, "color");
         colorSensor = hwMap.get(ColorSensor.class, "color");
         servo_blockPush = hwMap.get(Servo.class, "servo_blockPush");
+        capstone = hwMap.get(CRServo.class, "capstone");
 
         
         leftFront.setDirection(DcMotor.Direction.FORWARD); // Set to REVERSE if using AndyMark motors

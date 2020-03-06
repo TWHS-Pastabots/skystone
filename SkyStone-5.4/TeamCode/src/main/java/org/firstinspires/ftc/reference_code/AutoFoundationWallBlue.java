@@ -16,7 +16,7 @@ import com.qualcomm.robotcore.hardware.ColorSensor;
  */
 
 @Autonomous(name="Blue-Foundation-Wall", group="BlueAuton")
-//@Disabled
+@Disabled
 public class AutoFoundationWallBlue extends LinearOpMode {
 
     /* Declare OpMode members. */

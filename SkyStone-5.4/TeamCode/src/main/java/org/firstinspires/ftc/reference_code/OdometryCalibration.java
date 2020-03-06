@@ -2,6 +2,7 @@ package org.firstinspires.ftc.reference_code;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -20,6 +21,7 @@ import java.io.File;
  */
 
 @TeleOp(name = "Odometry System Calibration", group = "Calibration")
+@Disabled
 public class OdometryCalibration extends LinearOpMode {
     //Drive motors
     private DcMotor motor_fLeft;
