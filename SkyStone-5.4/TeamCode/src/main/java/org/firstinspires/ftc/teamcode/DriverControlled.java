@@ -38,6 +38,7 @@ public class DriverControlled extends OpMode{
         robot.init(hardwareMap);
         robot.liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         //touch = hardwareMap.touchSensor.get("touch");
         //magnet = hardwareMap.get(DigitalChannel.class, "magnet");
