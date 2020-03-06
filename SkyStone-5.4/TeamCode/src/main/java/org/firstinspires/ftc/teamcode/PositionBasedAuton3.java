@@ -40,7 +40,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
     private static final double vKp = 0.001;
     private static final double vKi = 0.001;
-    private static final double vKd = 0.000;
+    private static final double vKd = 0.001;
 
     public double startX = 0.0;
     public double startY = 0.0;
@@ -576,6 +576,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         private boolean dropBlockRequested = false;
         private boolean intakeActivated = false;
         private boolean blockDropped = false;
+        private boolean axisFlipped = false;
         private Positioning positioning;
         private ElapsedTime liftTimer = new ElapsedTime();
         double pulleyCircumference = 2 * Math.PI * 1.0;
@@ -612,6 +613,8 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         public void dropBlock(){
             dropBlockRequested = true;
         }
+
+        public void flipAxis(){axisFlipped = true;}
 
         private void closeClaw(){
             robot.claw.setPosition(1.0);
@@ -688,7 +691,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
                     xPos = positioning.getX();
                     //Grab the block with the claw and raise the lift into position then turn the claw out
-                    while(armHeightDistance.getDistance(DistanceUnit.INCH) < 14 && xPos < 0) {
+                    while(armHeightDistance.getDistance(DistanceUnit.INCH) < 14 && axisFlipped ? xPos > 0 : xPos < 0) {
                         robot.liftMotor.setPower(-0.75);
                         xPos = positioning.getX();
                     }
