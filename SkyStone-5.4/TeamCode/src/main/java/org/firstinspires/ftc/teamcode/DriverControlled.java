@@ -28,6 +28,8 @@ public class DriverControlled extends OpMode{
     boolean isBlockPush = false;
     double slowCon = 0.8;
     int pos = 0;
+    int closedSoundEffect;
+    int openSoundEffect;
 
     //private TouchSensor touch;
     //DigitalChannel magnet;
@@ -60,10 +62,13 @@ public class DriverControlled extends OpMode{
     public void start() {
         runTime.reset();
         telemetry.addData("Run Time", "reset");
-        int gibbonSoundEffect = hardwareMap.appContext.getResources().getIdentifier("gibbon",
+        closedSoundEffect = hardwareMap.appContext.getResources().getIdentifier("closediggy",
                 "raw", hardwareMap.appContext.getPackageName());
-        SoundPlayer.getInstance().startPlaying(hardwareMap.appContext, gibbonSoundEffect); //Okay now this is pure comedy
-    }                                                                                      //Sound effect will play ONCE upon pressing play
+        openSoundEffect = hardwareMap.appContext.getResources().getIdentifier("openiggy",
+                "raw", hardwareMap.appContext.getPackageName());
+        SoundPlayer.getInstance().startPlaying(hardwareMap.appContext, openSoundEffect);
+
+    }
 
     // loop on start()
     @Override
@@ -138,9 +143,9 @@ public class DriverControlled extends OpMode{
         else
         {
             robot.liftMotor.setPower(0.0);
-            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             robot.liftMotor.setTargetPosition(pos);
-            robot.liftMotor.setPower(1);
+            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.liftMotor.setPower(0.5);
             telemetry.addData("Staying at:", robot.liftMotor.getCurrentPosition());
             telemetry.update();
         }
@@ -159,6 +164,10 @@ public class DriverControlled extends OpMode{
 
         if(gamepad2.back && backTimer2.seconds() > 1.0){
             isBlockPush = !isBlockPush;
+            if(isBlockPush)
+                SoundPlayer.getInstance().startPlaying(hardwareMap.appContext, closedSoundEffect);
+            else
+                SoundPlayer.getInstance().startPlaying(hardwareMap.appContext, openSoundEffect);
             backTimer2.reset();
         }
 

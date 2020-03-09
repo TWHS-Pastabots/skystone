@@ -12,14 +12,13 @@ public class BlueStones extends PositionBasedAuton3 {
     }
 
     public void drive(){
-        driveToPosition(18.0, 46.0, 20, 90, 0.0, true, 10, positioning, sensing);
+        driveToPosition(18.0, 46.0, 20, 90, 0.0, 5, 10, positioning, sensing);
         sensing.activateIntake();
-        driveToPosition(25.0, 46.0, 20, 90, 0.0, true, 10, positioning, sensing);
-        sleep(1000);
+        driveToPosition(25.0, 46.0, 20, 90, 0.0, 5, 10, positioning, sensing);
         sensing.deActivateIntake();
-        driveToPosition(25.0, 34.0, 20, 90, 0.0, true, 10, positioning, sensing);
-        driveToPosition(-24.0, 34.0, 20, 90, 0.0, true, 10, positioning, sensing);
-        turn(180, TURN_SPEED, positioning);
+        driveToPosition(25.0, 34.0, 20, 90, 0.0, 5, 10, positioning, sensing);
+        driveToPosition(-24.0, 34.0, 20, 90, 0.0, 5, 10, positioning, sensing);
+        sleep(1000);
         sensing.dropBlock();
         sleep(2000);
 

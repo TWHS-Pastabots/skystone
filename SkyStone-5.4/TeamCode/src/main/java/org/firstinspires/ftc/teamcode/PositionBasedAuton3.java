@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
+import org.firstinspires.ftc.reference_code.PositionBasedAuton;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.opencv.core.Core;
@@ -23,6 +24,7 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
 
 public abstract class PositionBasedAuton3 extends LinearOpMode {
 
@@ -35,17 +37,18 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
     private final double MINIMUM_POWER = 0.2;
 
     private static final double hKp = 0.005;
-    private static final double hKi = 0.002;
+    private static final double hKi = 0.003;
     private static final double hKd = 0.000;
 
-    private static final double vKp = 0.001;
-    private static final double vKi = 0.001;
-    private static final double vKd = 0.001;
+    private static final double vKp = 0.0009;
+    private static final double vKi = 0.0;
+    private static final double vKd = 0.0;
 
     public double startX = 0.0;
     public double startY = 0.0;
     public double startOrientation = 0.0;
     public boolean isInPositiveX;
+    public boolean isBlue = true;
 
     private RobotHardware robot = new RobotHardware();
     private ElapsedTime runTime = new ElapsedTime();
@@ -54,6 +57,10 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
     private ElapsedTime logTimer = new ElapsedTime();
     private ElapsedTime dtDistTimer = new ElapsedTime();
     private DistanceSensor armHeightDistance;
+    private DistanceSensor blockDistance;
+    private DistanceSensor frontDistance;
+    private DistanceSensor leftDistance;
+    private double startingHeight;
 
     private TouchSensor touch;
 
@@ -90,13 +97,19 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         armHeightDistance = hardwareMap.get(DistanceSensor.class, "armHeightDistance");
+        blockDistance = hardwareMap.get(DistanceSensor.class, "blockDistance");
+        frontDistance = hardwareMap.get(DistanceSensor.class, "frontDistance");
+        leftDistance = hardwareMap.get(DistanceSensor.class, "leftDistance");
 
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         phoneCam = new OpenCvInternalCamera(OpenCvInternalCamera.CameraDirection.FRONT, cameraMonitorViewId);
         phoneCam.openCameraDevice();
-        detectorPipeline = new DetectorPipeline();
+        detectorPipeline = new DetectorPipeline(isBlue);
         phoneCam.setPipeline(detectorPipeline);
-        phoneCam.startStreaming(320, 240, OpenCvCameraRotation.SIDEWAYS_RIGHT); //CHANGE BACK
+        if(isBlue)
+            phoneCam.startStreaming(320, 240, OpenCvCameraRotation.SIDEWAYS_RIGHT);
+        else
+            phoneCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
 
         //Start positioning thread
         positioning = new Positioning(robot.leftEnc, robot.rightEnc, robot.horizEnc, THREAD_SLEEP_DELAY, robot.imu, startOrientation, startX, startY);
@@ -117,11 +130,15 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             stoneConfig = detectorPipeline.getDetectedPos();
             telemetry.addData("Stone Config: ", stoneConfig);
             telemetry.addData("Height ",armHeightDistance.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Block ", blockDistance.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Front ", frontDistance.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Left ", leftDistance.getDistance(DistanceUnit.INCH));
             telemetry.update();
         }
 
         waitForStart();
         runTime.reset();
+        startingHeight = armHeightDistance.getDistance(DistanceUnit.INCH);
         drive();
         positioning.stop();
         sensing.stop();
@@ -146,8 +163,37 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
     public abstract void drive();
 
+    public void correctPosition(boolean x, boolean y, Positioning positioning){
+        ElapsedTime correctionTimer = new ElapsedTime();
+        double front = 0.0;
+        double left = 0.0;
+        correctionTimer.reset();
+        int counter = 0;
+        while(correctionTimer.seconds() < 0.25) {
+            front += frontDistance.getDistance(DistanceUnit.INCH);
+            left += leftDistance.getDistance(DistanceUnit.INCH);
+            counter++;
+        }
+        left /= (double)counter;
+        front /= (double)counter;
 
-    public void driveToPosition(double targetX, double targetY, double velocity, double heading, double rampUpTimeS, boolean rampDown, double timeoutS, Positioning positioning, SensorThread sensing){
+        front *= Math.cos(Math.toRadians(90.0 - Math.abs(positioning.getOrientation())));
+        left *= Math.cos(Math.toRadians(90.0 - Math.abs(positioning.getOrientation())));
+
+        front += 7.0;
+        front -= 72.0;
+        left += 7.0;
+
+        if(x)
+            positioning.correctX(front);
+        if(y)
+            positioning.correctY(left);
+        log += "\n\n\nCorrection:\nNew X: " + positioning.getX() + "  New Y: " + positioning.getY() + "\n\n\n";
+        ReadWriteFile.writeFile(actionLog, log);
+    }
+
+
+    public void driveToPosition(double targetX, double targetY, double velocity, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning, SensorThread sensing){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
@@ -158,7 +204,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         double fRight;
         double rLeft;
         double rRight;
-        double speed = 0;
+        double speed = 0.4; //Starting power for moves
         double headingError;
         double velocityError;
         double targetVelocity = velocity;
@@ -182,7 +228,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         moveTimer.reset();
         logTimer.reset();
         successTimer.reset();
-        while(moveTimer.seconds() < timeoutS && distance > 1){
+        while(moveTimer.seconds() < timeoutS && distance > 2){
             isInPositiveX = positioning.isInPositiveX();
             xDistance = targetX - positioning.getX();
             yDistance = targetY - positioning.getY();
@@ -271,6 +317,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
 
             //Ramp up the motor powers
+            /*
             if(rampUpTimeS > moveTimer.seconds()) {
                 double rampUpPercent = moveTimer.seconds() / rampUpTimeS;
                 if(rampUpPercent < 0.5)
@@ -287,6 +334,10 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             else if(distance < (startDistance / 4.0) && rampDown)
                 targetVelocity = velocity / 4.0;
             else if(distance < (5) && rampDown)
+                targetVelocity = 5.0;
+            */
+
+            if(distance < rampDownDistance)
                 targetVelocity = 5.0;
 
             //Provide steer to the motors based off the PID
@@ -351,7 +402,9 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
 
             //Display Global (x, y, theta) coordinates
-            telemetry.addData("Lift Encoder Pos", robot.liftMotor.getCurrentPosition());
+            double armHeight = armHeightDistance.getDistance(DistanceUnit.INCH);
+            telemetry.addData("Lift Height", armHeight);
+            telemetry.addData("Left Dist", leftDistance.getDistance(DistanceUnit.INCH));
             telemetry.addData("X Position", positioning.getX());
             telemetry.addData("Y Position", positioning.getY());
             telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
@@ -370,8 +423,9 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                 log += "Runtime::" + runTime.seconds() + "\n\t X Pos:: " + positioning.getX()
                         + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n\t"
                         + "FL Motor Power:: " + robot.leftFront.getPower() + " BL Motor Power:: " + robot.leftRear.getPower() + " FR Motor Power:: " +
-                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() + "\n\t" + "Velocity:: " + positioning.getVelocity() +  " Previous Distance:: "
-                        + previousDistance + " Distance:: " + distance + " dt:: " + dtDist + "\n"   ;
+                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() +
+                        "\n\t" + "Velocity:: " + positioning.getVelocity() +  " Target Velocity:: " + targetVelocity + " Speed Change:" +  speedChange + "\n\t"
+                        + "Arm Height: " + armHeight + "\n\n";
 
                 logTimer.reset();
             }
@@ -388,7 +442,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         robot.leftRear.setPower(0);
         robot.rightRear.setPower(0);
 
-        log += "\n\n\n";
+        log += "\n\n\n\n";
 
         ReadWriteFile.writeFile(actionLog, log);
     }
@@ -492,6 +546,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         private Mat mat2 = new Mat();
 
         private boolean madeMats = false;
+        private boolean isBlue;
 
         private Mat mask0;
         private Mat mask1;
@@ -501,10 +556,30 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         private final Scalar BLACK = new Scalar(0,0,0);
         private final Scalar WHITE = new Scalar(256, 256, 256);
         private final int r = 10;
-        private final int cx0 = 40, cx1 = 130, cx2 = 210;// Width=320 Height=240
-        private final int cy0 = 75, cy1 = 75, cy2 = 75;
+        private int cx0, cx1, cx2;// Width=320 Height=240
+        private int cy0 , cy1, cy2;
 
         private String detectedPos;
+
+        public DetectorPipeline(boolean isBlue){
+            if(isBlue){
+                cx0 = 40;
+                cx1 = 130;
+                cx2 = 210;
+                cy0 = 75;
+                cy1 = 75;
+                cy2 = 75;
+            }
+            else{
+                cx0 = 40;
+                cx1 = 130;
+                cx2 = 210;
+                cy0 = 200;
+                cy1 = 200;
+                cy2 = 200;
+            }
+            this.isBlue = isBlue;
+        }
 
         @Override
         public Mat processFrame(Mat input)
@@ -536,13 +611,22 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             double sum1 = sum(Core.sumElems(mat1).val);
             double sum2 = sum(Core.sumElems(mat2).val);
 
-            if(sum0 < sum1 && sum0 < sum2)
-                detectedPos = "Right";
-            else if(sum1 < sum0 && sum1 < sum2)
-                detectedPos = "Middle";
-            else if(sum2 < sum1 && sum2 < sum0)
-                detectedPos = "Left";
-
+            if(isBlue){
+                if(sum0 < sum1 && sum0 < sum2)
+                    detectedPos = "Right";
+                else if(sum1 < sum0 && sum1 < sum2)
+                    detectedPos = "Middle";
+                else if(sum2 < sum1 && sum2 < sum0)
+                    detectedPos = "Left";
+            }
+            else{
+                if(sum0 < sum1 && sum0 < sum2)
+                    detectedPos = "Left";
+                else if(sum1 < sum0 && sum1 < sum2)
+                    detectedPos = "Middle";
+                else if(sum2 < sum1 && sum2 < sum0)
+                    detectedPos = "Right";
+            }
 
             /*
              * NOTE: to see how to get data from your pipeline to your OpMode as well as how
@@ -577,6 +661,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         private boolean intakeActivated = false;
         private boolean blockDropped = false;
         private boolean axisFlipped = false;
+        private boolean armRaised = false;
         private Positioning positioning;
         private ElapsedTime liftTimer = new ElapsedTime();
         double pulleyCircumference = 2 * Math.PI * 1.0;
@@ -615,6 +700,10 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         }
 
         public void flipAxis(){axisFlipped = true;}
+
+        public void raiseArm(){
+
+        }
 
         private void closeClaw(){
             robot.claw.setPosition(1.0);
@@ -671,15 +760,17 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                     robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
                     turnOnIntake();
-                    while(intakeActivated ){
+                    while(blockDistance.getDistance(DistanceUnit.INCH) > 4.0 ){
                         turnOnIntake();
                     }
+                    activateSpanker();
+                    sleep(500);
                     turnOffIntake();
+                    closeClaw();
 
                     //Push the block into place and lower claw onto it only partially
-                    activateSpanker();
-                    sleep(250);
-                    closeClaw();
+                    //sleep(1000);
+
 
                     //Wait until the robot has crossed into positive x
                     /*
@@ -689,21 +780,36 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                      */
 
 
+                    //Wait to cross the x-axis
                     xPos = positioning.getX();
+                    while(axisFlipped ? xPos < 0 : xPos > 0){
+                        xPos = positioning.getX();
+                    }
                     //Grab the block with the claw and raise the lift into position then turn the claw out
-                    while(armHeightDistance.getDistance(DistanceUnit.INCH) < 14 && axisFlipped ? xPos > 0 : xPos < 0) {
-                        robot.liftMotor.setPower(-0.75);
+                    robot.liftMotor.setPower(-0.75);
+                    while(armHeightDistance.getDistance(DistanceUnit.INCH) < startingHeight + 10.0) {
                         xPos = positioning.getX();
                     }
                     robot.liftMotor.setPower(0);
-                    turnClawOut();
+
                     retractSpanker();
 
                     //Wait until dropping the block is requested, then let go of the block and turn the claw back in
-                    while(!blockDropped && opModeIsActive()){
-                        if(dropBlockRequested && opModeIsActive()){
-                            openClaw();
+                    while(!blockDropped){
+                        if(dropBlockRequested){
+                            turnClawOut();
                             sleep(500);
+                            robot.liftMotor.setPower(0.3);
+                            while(armHeightDistance.getDistance(DistanceUnit.INCH) > startingHeight + 3.0) {
+                                robot.liftMotor.setPower(0.3);
+                            }
+                            robot.liftMotor.setPower(0.0);
+                            openClaw();
+                            robot.liftMotor.setPower(-0.75);
+                            while(armHeightDistance.getDistance(DistanceUnit.INCH) < startingHeight + 8.0) {
+                                robot.liftMotor.setPower(-0.75);
+                            }
+                            robot.liftMotor.setPower(0);
                             closeClaw();
                             turnClawIn();
                             blockDropped = true;
@@ -712,8 +818,8 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                     sleep(750);
 
                     //Lower the lift back down and open the claw
-                    while(armHeightDistance.getDistance(DistanceUnit.INCH) > 2.0){
-                        robot.liftMotor.setPower(0.15);
+                    while(armHeightDistance.getDistance(DistanceUnit.INCH) > startingHeight){
+                        robot.liftMotor.setPower(0.25);
                     }
                     robot.liftMotor.setPower(0.0);
                     openClaw();

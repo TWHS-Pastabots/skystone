@@ -145,6 +145,14 @@ public class Positioning implements Runnable {
 
     }
 
+    public void correctX(double newX){
+        xPos = newX;
+    }
+
+    public void correctY(double newY){
+        yPos = newY;
+    }
+
     //Returns the raw angle provided by the imu, and flips it so negative is left
     private double getAngle(){
         return -imu.getAngularOrientation().firstAngle;

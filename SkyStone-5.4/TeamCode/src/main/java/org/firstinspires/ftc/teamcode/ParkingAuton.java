@@ -12,7 +12,7 @@ public class ParkingAuton extends PositionBasedAuton3 {
     }
 
     public void drive(){
-        driveToPosition(0.0, 48.0, 20, 0.0, 0, false, 3.5, positioning, sensing);
+        driveToPosition(0.0, 48.0, 20, 0.0, 0, 0, 3.5, positioning, sensing);
         turn(90, 0.75, positioning);
     }
 }
