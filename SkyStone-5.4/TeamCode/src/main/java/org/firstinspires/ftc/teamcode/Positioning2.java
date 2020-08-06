@@ -10,11 +10,6 @@ import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import java.io.File;
 
-/**
- * Created by Cam and Matthew on 02102020.
- * Example OpMode that runs the Positioning thread and accesses the (x, y, theta) coordinate values
- */
-
 public class Positioning2 implements Runnable {
 
     //The amount of encoder ticks for each inch the robot moves.
