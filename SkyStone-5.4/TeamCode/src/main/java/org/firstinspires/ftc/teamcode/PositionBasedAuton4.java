@@ -1,14 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
-import org.firstinspires.ftc.reference_code.PositionBasedAuton;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.opencv.core.Core;
@@ -24,21 +24,21 @@ import org.openftc.easyopencv.OpenCvPipeline;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.InvocationHandler;
+import java.util.List;
 
-public abstract class PositionBasedAuton3 extends LinearOpMode {
+public abstract class PositionBasedAuton4 extends LinearOpMode {
 
     private final double ANGLE_THRESHOLD = 3.0;
     public final double TURN_SPEED = 0.7;
     public final double TURN_SPEED_HIGH = 1.0;
     public final double DRIVE_SPEED = 1.0;
     public final double DRIVE_SPEED_HIGH = 1.0;
-    private final int THREAD_SLEEP_DELAY = 50;
+    private final int THREAD_SLEEP_DELAY = 75; //25
     private final double MINIMUM_POWER = 0.2;
 
-    private static final double hKp = 0.005;
+    private static final double hKp = 0.009;
     private static final double hKi = 0.003;
-    private static final double hKd = 0.000;
+    private static final double hKd = 0.00;
 
     private static final double vKp = 0.0009;
     private static final double vKi = 0.0;
@@ -56,20 +56,18 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
     private ElapsedTime successTimer = new ElapsedTime();
     private ElapsedTime logTimer = new ElapsedTime();
     private ElapsedTime dtDistTimer = new ElapsedTime();
-    private DistanceSensor armHeightDistance;
-    private DistanceSensor blockDistance;
-    private DistanceSensor frontDistance;
-    private DistanceSensor leftDistance;
+
     private double startingHeight;
 
     private TouchSensor touch;
 
     private OpenCvCamera phoneCam;
-    private PositionBasedAuton3.DetectorPipeline detectorPipeline;
+    private PositionBasedAuton4.DetectorPipeline detectorPipeline;
     private String stoneConfig;
 
-    public Positioning positioning;
+    public Positioning2 positioning;
     public SensorThread sensing;
+    public ExpansionHubReading ehr;
     public Logging logging;
 
     private double steerIntegral;
@@ -81,10 +79,19 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
     @Override
     public void runOpMode(){
+        telemetry.addData("Status", "Initializing");
+        telemetry.addData("Currently:", "Setting Start Positions");
+        telemetry.update();
         setStartPos();
-        robot.init(hardwareMap);
-        touch = hardwareMap.touchSensor.get("touch");
 
+        telemetry.addData("Status", "Initializing");
+        telemetry.addData("Currently:", "Initializing Hardware Map");
+        telemetry.update();
+        robot.init(hardwareMap);
+
+        telemetry.addData("Status", "Initializing");
+        telemetry.addData("Currently:", "Setting Run Modes");
+        telemetry.update();
         robot.leftEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.rightEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         robot.horizEnc.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -95,11 +102,18 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         robot.horizEnc.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        armHeightDistance = hardwareMap.get(DistanceSensor.class, "armHeightDistance");
-        blockDistance = hardwareMap.get(DistanceSensor.class, "blockDistance");
-        frontDistance = hardwareMap.get(DistanceSensor.class, "frontDistance");
-        leftDistance = hardwareMap.get(DistanceSensor.class, "leftDistance");
+        telemetry.addData("Status", "Initializing");
+        telemetry.addData("Currently:", "Creating Expansion Hub List");
+        telemetry.update();
+        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
 
+        for (LynxModule module : allHubs) {
+            module.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        }
+
+        telemetry.addData("Status", "Initializing");
+        telemetry.addData("Currently:", "Initializing Camera");
+        telemetry.update();
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         phoneCam = new OpenCvInternalCamera(OpenCvInternalCamera.CameraDirection.FRONT, cameraMonitorViewId);
         phoneCam.openCameraDevice();
@@ -110,8 +124,24 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         else
             phoneCam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
 
+        telemetry.addData("Status", "Initializing");
+        telemetry.addData("Currently:", "Starting threads");
+        telemetry.update();
+        //Start Expansion Hub Reading Thread
+        ehr = new ExpansionHubReading(robot, allHubs);
+        Thread ehrThread = new Thread(ehr);
+        ehrThread.start();
+
+        //Start logging thread
+        logging = new Logging();
+        Thread loggingThread = new Thread(logging);
+        loggingThread.start();
+        logging.createLog("SensorLog");
+        logging.createLog("ActionLog");
+        logging.createLog("HeadingErrorLog");
+
         //Start positioning thread
-        positioning = new Positioning(robot.leftEnc, robot.rightEnc, robot.horizEnc, THREAD_SLEEP_DELAY, robot.imu, startOrientation, startX, startY);
+        positioning = new Positioning2(ehr, THREAD_SLEEP_DELAY, startOrientation, startX, startY, logging);
         Thread positionThread = new Thread(positioning);
         positionThread.start();
 
@@ -121,27 +151,29 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         sensorThread.start();
 
         //Init complete
-        telemetry.addData("Status", "Init Complete");
+        telemetry.addData("Status", "Initialization Complete");
         telemetry.update();
 
-        //Find the current configuration of the skystones
-        while(!isStarted()) {
+        ehr.setReadHeight(true);
+        sleep(100);
+        while(!isStarted() && !isStopRequested()){
+            startingHeight = ehr.armHeightD;
             stoneConfig = detectorPipeline.getDetectedPos();
             telemetry.addData("Stone Config: ", stoneConfig);
-            telemetry.addData("Height ",armHeightDistance.getDistance(DistanceUnit.INCH));
-            telemetry.addData("Block ", blockDistance.getDistance(DistanceUnit.INCH));
-            telemetry.addData("Front ", frontDistance.getDistance(DistanceUnit.INCH));
-            telemetry.addData("Left ", leftDistance.getDistance(DistanceUnit.INCH));
+            telemetry.addData("Height ", ehr.armHeightD);
+            telemetry.addData("Block ", ehr.blockD);
+            telemetry.addData("Front ", ehr.frontD);
+            telemetry.addData("Left ", ehr.leftD);
             telemetry.update();
         }
 
-        waitForStart();
         runTime.reset();
-        startingHeight = armHeightDistance.getDistance(DistanceUnit.INCH);
+        ehr.setReadHeight(false);
         drive();
         positioning.stop();
         sensing.stop();
-
+        ehr.stop();
+        logging.stop();
     }
 
     public String getStoneConfig(){
@@ -149,104 +181,123 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
     }
 
     public void lowerHooks(){
-        robot.leftH.setPosition(0);
-        robot.rightH.setPosition(1);
+        robot.leftH.setPosition(0.9);
+        robot.rightH.setPosition(0.8);
     }
 
     public void raiseHooks(){
-        robot.leftH.setPosition(1);
-        robot.rightH.setPosition(0);
+        robot.leftH.setPosition(0.0);
+        robot.rightH.setPosition(0.0);
     }
 
     public abstract void setStartPos();
 
     public abstract void drive();
 
-    public void correctPosition(boolean x, boolean y, Positioning positioning){
+    public void correctPosition(boolean x, boolean y, Positioning2 positioning){
         ElapsedTime correctionTimer = new ElapsedTime();
-        double front = 0.0;
-        double left = 0.0;
+        ehr.setReadCorrections(true);
+        sleep(100);
+        double front = ehr.frontD;
+        double left = ehr.leftD;
+        ehr.setReadCorrections(false);
+
         correctionTimer.reset();
         int counter = 0;
-        while(correctionTimer.seconds() < 0.25) {
-            front += frontDistance.getDistance(DistanceUnit.INCH);
-            left += leftDistance.getDistance(DistanceUnit.INCH);
+        while(correctionTimer.seconds() < 0.25 && opModeIsActive()) {
+            front += ehr.frontD;
+            left += ehr.leftD;
             counter++;
         }
-        left /= (double)counter;
-        front /= (double)counter;
+
+        front /= counter;
+        left /= counter;
 
         front *= Math.cos(Math.toRadians(90.0 - Math.abs(positioning.getOrientation())));
         left *= Math.cos(Math.toRadians(90.0 - Math.abs(positioning.getOrientation())));
 
         front += 7.0;
-        front -= 72.0;
+        front -= 70.0;
         left += 7.0;
 
-        if(x)
+        if(x) {
             positioning.correctX(front);
-        if(y)
+            logging.add("ActionLog", "\n\nX Correction: " + positioning.getX());
+        }
+        if(y) {
             positioning.correctY(left);
-        log += "\n\n\nCorrection:\nNew X: " + positioning.getX() + "  New Y: " + positioning.getY() + "\n\n\n";
-        ReadWriteFile.writeFile(actionLog, log);
+            logging.add("ActionLog", "\n\nY Correction: " + positioning.getY());
+        }
     }
 
 
-    public void driveToPosition(double targetX, double targetY, double velocity, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning positioning, SensorThread sensing){
+    public void driveToPosition(double targetX, double targetY, double velocity, double heading, double rampUpTimeS, double rampDownDistance, double timeoutS, Positioning2 positioning, SensorThread sensing){
         double xDistance = targetX - positioning.getX();
         double yDistance = targetY - positioning.getY();
         double distance = Math.hypot(xDistance, yDistance);
-        double startDistance = distance;
         double movementAngle;
 
         double fLeft;
         double fRight;
         double rLeft;
         double rRight;
-        double speed = 0.4; //Starting power for moves
+        double speed; //Starting power for moves
         double headingError;
         double velocityError;
         double targetVelocity = velocity;
-        double startTargetVelocity = velocity;
         double steer;
         double speedChange;
         double previousHeadingError = 0;
         double previousVelocityError = 0;
-        double previousDistance = distance;
         boolean isRampingDown = false;
-        int successCounter = 0;
+        boolean braked = false;
         double  dt = 0.0;
-        double  dtDist = 0.0;
+
+        double x;
+        double y;
+        double orientation;
+        double vel;
+
         steerIntegral = 0;
         velocityIntegral = 0;
-
-        //Turn to the desired heading
-        //turn(heading, TURN_SPEED, positioning);
 
         ElapsedTime pidTimer = new ElapsedTime();
         moveTimer.reset();
         logTimer.reset();
         successTimer.reset();
-        while(moveTimer.seconds() < timeoutS && distance > 2){
-            isInPositiveX = positioning.isInPositiveX();
-            xDistance = targetX - positioning.getX();
-            yDistance = targetY - positioning.getY();
-            if(dtDistTimer.seconds() > 0.05){
-                dtDist = dtDistTimer.seconds();
-                previousDistance = distance;
-                dtDistTimer.reset();
+        while(moveTimer.seconds() < timeoutS && distance > 2 && opModeIsActive()){
+            /*
+            positioning.setCorrectingX(false);
+            positioning.setCorrectingY(false);
+            if(ehr.frontD <= 45.0) {
+                correctPosition(true, false, positioning);
+                positioning.setCorrectingX(true);
             }
+            if(ehr.leftD <= 45.0 && positioning.getX() < -14.0){
+                correctPosition(false, true, positioning);
+                positioning.setCorrectingY(true);
+            }
+
+             */
+
+            x = positioning.getX();
+            y = positioning.getY();
+            orientation = positioning.getOrientation();
+            vel = positioning.getVelocity();
+
+            xDistance = targetX - x;
+            yDistance = targetY - y;
             distance = Math.hypot(xDistance, yDistance);
-            movementAngle = Math.toDegrees(Math.atan2(xDistance, yDistance)) - positioning.getOrientation();
+            movementAngle = Math.toDegrees(Math.atan2(xDistance, yDistance)) - orientation;
 
             //Calc the steer using PID
-            headingError = getHeadingError(heading, positioning);
+            headingError = getHeadingError(heading, orientation);
             pidTimer.reset();
             steer = getSteerPID(headingError, previousHeadingError, dt, hKp, hKi, hKd);
             previousHeadingError = headingError;
 
             //Calc the velocity PID
-            velocityError = targetVelocity - positioning.getVelocity(); //If error is positive, need to increae velocity
+            velocityError = targetVelocity - vel; //If error is positive, need to increae velocity
             speedChange = getVelocityPID(velocityError, previousVelocityError, dt, vKp, vKi, vKd );
             previousVelocityError = velocityError;
 
@@ -262,7 +313,18 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             rLeft = 0;
             rRight = 0;
 
-            speed = Range.clip(speed + ( ((int)(speedChange * 10000)) / 10000.0), 0.0, 1.0 );
+            //speed = Range.clip(speed + ( ((int)(speedChange * 10000)) / 10000.0), 0.0, 1.0 );
+
+            speed = velocity;
+            if(distance < rampDownDistance && rampDownDistance > 0) {
+                if (!braked) {
+                    speed = 0.0;
+                    braked = true;
+                }
+                else
+                    speed = 0.3;
+            }
+
 
             //Calculate the speeds based on the quadrant the robot is traveling to
             if(angleXAxis > 0 && angleXAxis < 90) {  //First Quadrant
@@ -314,29 +376,7 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                 rRight = -speed;
             }
 
-
-            //Ramp up the motor powers
-            /*
-            if(rampUpTimeS > moveTimer.seconds()) {
-                double rampUpPercent = moveTimer.seconds() / rampUpTimeS;
-                if(rampUpPercent < 0.5)
-                    rampUpPercent = 0.5;
-                fLeft = fLeft * (rampUpPercent);
-                fRight = fRight * (rampUpPercent);
-                rLeft = rLeft * (rampUpPercent);
-                rRight = rRight * (rampUpPercent);
-            }
-            else if(distance < (startDistance / 2.0) && rampDown)
-                targetVelocity = velocity / 2.0;
-            else if(distance < (startDistance / 3.0) && rampDown)
-                targetVelocity = velocity / 3.0;
-            else if(distance < (startDistance / 4.0) && rampDown)
-                targetVelocity = velocity / 4.0;
-            else if(distance < (5) && rampDown)
-                targetVelocity = 5.0;
-            */
-
-            if(distance < rampDownDistance)
+            if(distance < rampDownDistance && rampDownDistance > 0)
                 targetVelocity = 5.0;
 
             //Provide steer to the motors based off the PID
@@ -345,18 +385,6 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             fRight -= steer;
             rRight -= steer;
 
-            //Make sure there is a minimum power being provided to the motors during a ramp down or up
-            /*
-            double minPower = Math.min(Math.min(fLeft, fRight), Math.min(rLeft, rRight));
-            if(minPower < MINIMUM_POWER && (isRampingDown || rampUpTimeS > moveTimer.seconds()) ){
-                double powerMultiplier = MINIMUM_POWER / minPower;
-                fLeft = fLeft * (powerMultiplier);
-                fRight = fRight * (powerMultiplier);
-                rLeft = rLeft * (powerMultiplier);
-                rRight = rRight * (powerMultiplier);
-            }
-
-             */
 
             //Make sure no motor is trying to go too fast
             double maxPower = Math.max(Math.max(fLeft, fRight), Math.max(rLeft, rRight));
@@ -367,19 +395,6 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                 rRight = rRight / (maxPower);
             }
 
-            //Ramp down the motor powers
-            /*
-            if(distance < rampDownDistance){
-                double rampDownPercent = distance / rampDownDistance;
-                if(rampDownPercent < 0.3)
-                    rampDownPercent = 0.3;
-                fLeft = fLeft * (rampDownPercent);
-                fRight = fRight * (rampDownPercent);
-                rLeft = rLeft * (rampDownPercent);
-                rRight = rRight * (rampDownPercent);
-            }
-
-             */
 
             //Give powers to the wheels
             robot.leftFront.setPower(fLeft);
@@ -387,47 +402,31 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
             robot.leftRear.setPower(rLeft);
             robot.rightRear.setPower(rRight);
 
-            //Check if robot is in the correct location
-            /*
-            if(distance < 1 && successTimer.milliseconds() > 20){
-                successCounter++;
-                successTimer.reset();
-            }
-            else if(distance > 1)
-                successCounter = 0;
-
-             */
-
-
 
             //Display Global (x, y, theta) coordinates
-            double armHeight = armHeightDistance.getDistance(DistanceUnit.INCH);
-            telemetry.addData("Lift Height", armHeight);
-            telemetry.addData("Left Dist", leftDistance.getDistance(DistanceUnit.INCH));
-            telemetry.addData("X Position", positioning.getX());
-            telemetry.addData("Y Position", positioning.getY());
-            telemetry.addData("Orientation (Degrees)", positioning.getOrientation());
-            telemetry.addData("Velocity:", positioning.getVelocity());
-            telemetry.addData("Velocity Error:", velocityError);
+            telemetry.addData("Velocity", vel);
+            telemetry.addData("X Position", x);
+            telemetry.addData("Y Position", y);
+            telemetry.addData("Orientation (Degrees)", orientation);
             telemetry.addData("Speed Change:", speedChange);
             telemetry.addData("Speed:", speed);
-            telemetry.addData("Left  Front Motor P:", robot.leftFront.getPower());
-            telemetry.addData("Right  Front Motor P:", robot.rightFront.getPower());
-            telemetry.addData("Left  Rear Motor P:", robot.leftRear.getPower());
-            telemetry.addData("Right Rear Motor P:", robot.rightRear.getPower());
-            telemetry.addData("Left  Intake Motor P:", robot.leftIn.getPower());
-            telemetry.addData("Right Intake Motor P:", robot.rightIn.getPower());
             telemetry.update();
+            logging.add("HeadingErrorLog", headingError + "\n" + moveTimer.seconds() + "\n");
+            logging.add("ActionLog", "\n\nRuntime: " + runTime.seconds() + "\n\tX Position: " + x + "   Y Position: " + y + "   Orientation: " + orientation + "   Velocity: " + vel);
+            //logging.add("SensorLog", "Runtime: " + runTime.seconds() + "\n\tLeft Distance: " + ehr.leftD + " Front Distance: " + ehr.frontD + " Arm Height: " + ehr.armHeightD + " Block Distance: " + ehr.blockD + "\n\n");
+            /*
             if ( logTimer.milliseconds() > 50 ) {
                 log += "Runtime::" + runTime.seconds() + "\n\t X Pos:: " + positioning.getX()
                         + " Y Pos:: " + positioning.getY() + " Orientation:: " + positioning.getOrientation() + " DtT:: +" + distance + "\n\t"
-                        + "FL Motor Power:: " + robot.leftFront.getPower() + " BL Motor Power:: " + robot.leftRear.getPower() + " FR Motor Power:: " +
-                        robot.rightFront.getPower() + " BR Motor Power:: " + robot.rightRear.getPower() +
+                        + "FL Motor Power:: " + ehr.leftFrontPow + " BL Motor Power:: " + ehr.leftRearPow + " FR Motor Power:: " +
+                        ehr.rightFrontPow + " BR Motor Power:: " + ehr.rightRearPow +
                         "\n\t" + "Velocity:: " + positioning.getVelocity() +  " Target Velocity:: " + targetVelocity + " Speed Change:" +  speedChange + "\n\t"
-                        + "Arm Height: " + armHeight + "\n\n";
+                        + "Arm Height: " + ehr.armHeightD + "\n\n";
 
                 logTimer.reset();
             }
+
+             */
 
             //Set the time difference for the derivative
             dt = pidTimer.seconds();
@@ -435,24 +434,27 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
         }
 
+        logging.add("ActionLog", "\n\n\n");
+
         //Stop the robot
         robot.leftFront.setPower(0);
         robot.rightFront.setPower(0);
         robot.leftRear.setPower(0);
         robot.rightRear.setPower(0);
+        sleep(250);
 
         log += "\n\n\n\n";
 
         ReadWriteFile.writeFile(actionLog, log);
     }
 
-    public void turn(double targetAngle, double turnSpeed, Positioning positioning){
+    public void turn(double targetAngle, double turnSpeed, Positioning2 positioning){
 
         double angleError;
         int successCounter = 0;
 
         successTimer.reset();
-        while(successCounter < 5){
+        while(successCounter < 5 && opModeIsActive()){
 
             angleError = targetAngle - positioning.getOrientation();
             double signedTurnSpeed = turnSpeed * Math.signum(angleError);
@@ -491,6 +493,41 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         robot.rightRear.setPower(0);
     }
 
+    public void turnNoRampDown(double targetAngle, double turnSpeed, Positioning2 positioning){
+
+        double angleError;
+        int successCounter = 0;
+
+        successTimer.reset();
+        while(successCounter < 5 && opModeIsActive()){
+
+            angleError = targetAngle - positioning.getOrientation();
+            double signedTurnSpeed = turnSpeed * Math.signum(angleError);
+
+            robot.leftFront.setPower(signedTurnSpeed);
+            robot.rightFront.setPower(-signedTurnSpeed);
+            robot.leftRear.setPower(signedTurnSpeed);
+            robot.rightRear.setPower(-signedTurnSpeed);
+
+            if(Math.abs(angleError) < ANGLE_THRESHOLD && successTimer.milliseconds() > 10) {
+                successCounter++;
+                successTimer.reset();
+            }
+            else if(Math.abs(angleError) > ANGLE_THRESHOLD)
+                successCounter = 0;
+
+            telemetry.addData("Successes:", successCounter);
+            telemetry.addData("Error", Math.abs(angleError));
+            telemetry.update();
+        }
+
+        //Stop the robot
+        robot.leftFront.setPower(0);
+        robot.rightFront.setPower(0);
+        robot.leftRear.setPower(0);
+        robot.rightRear.setPower(0);
+    }
+
     private double calcOtherPower(double firstPower, double firstAngleDegrees, double otherAngleDegrees, double finalAngleDegrees ){
         double th1 = Math.toRadians(firstAngleDegrees);
         double th2 = Math.toRadians(otherAngleDegrees);
@@ -501,12 +538,12 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
     }
 
 
-    public double getHeadingError(double targetAngle, Positioning positioning) {
+    public double getHeadingError(double targetAngle, double orientation) {
 
         double robotError;
 
         // calculate error in -179 to +180 range  (
-        robotError = targetAngle - positioning.getOrientation();
+        robotError = targetAngle - orientation;
         while (robotError > 180)  robotError -= 360;
         while (robotError <= -180) robotError += 360;
         return robotError;
@@ -570,9 +607,9 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                 cy2 = 75;
             }
             else{
-                cx0 = 40;
-                cx1 = 130;
-                cx2 = 210;
+                cx0 = 30;
+                cx1 = 120;
+                cx2 = 200;
                 cy0 = 200;
                 cy1 = 200;
                 cy2 = 200;
@@ -661,15 +698,17 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         private boolean blockDropped = false;
         private boolean axisFlipped = false;
         private boolean armRaised = false;
-        private Positioning positioning;
+        private Positioning2 positioning;
         private ElapsedTime liftTimer = new ElapsedTime();
         double pulleyCircumference = 2 * Math.PI * 1.0;
         double liftMotorGearRatio = 70.0 / 56.0;
         double liftEncoderCountsPerInch = (2240 * pulleyCircumference * liftMotorGearRatio) / 3.0;
         double targetLiftPosition = 1000; //liftEncoderCountsPerInch * 4.0
         double xPos;
+        private ElapsedTime loweringTimer = new ElapsedTime();
+        private ElapsedTime intakeTimer = new ElapsedTime();
 
-        public SensorThread(Positioning positioning){
+        public SensorThread(Positioning2 positioning){
             this.positioning = positioning;
         }
 
@@ -705,41 +744,41 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
         }
 
         private void closeClaw(){
-            robot.claw.setPosition(1.0);
+            if(isRunning)robot.claw.setPosition(1.0);
         }
 
         private void openClaw(){
-            robot.claw.setPosition(0.0);
-        }
-
-        private void lowerClawPartially(){
-            robot.claw.setPosition(0.65);
+            if(isRunning)robot.claw.setPosition(0.0);
         }
 
         private void turnClawIn(){
-            robot.clawT.setPosition(1.0);
+            if(isRunning)robot.clawT.setPosition(1.0);
         }
 
         private void turnClawOut(){
-            robot.clawT.setPosition(0.0);
+            if(isRunning)robot.clawT.setPosition(0.0);
         }
 
         private void activateSpanker(){
-            robot.servo_blockPush.setPosition(0.0);
+            if(isRunning)robot.servo_blockPush.setPosition(0.0);
         }
 
         private void retractSpanker(){
-            robot.servo_blockPush.setPosition(1.0);
+            if(isRunning)robot.servo_blockPush.setPosition(1.0);
         }
 
         private void turnOnIntake(){
-            robot.leftIn.setPower(-1.0);
-            robot.rightIn.setPower(-1.0);
+            if(isRunning) {
+                robot.leftIn.setPower(-1.0);
+                robot.rightIn.setPower(-1.0);
+            }
         }
 
         private void turnOffIntake(){
-            robot.leftIn.setPower(0.0);
-            robot.rightIn.setPower(0.0);
+            if(isRunning) {
+                robot.leftIn.setPower(0.0);
+                robot.rightIn.setPower(0.0);
+            }
         }
 
         private void sleep(int timeMs){
@@ -759,13 +798,15 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
                     robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
                     turnOnIntake();
-                    while(blockDistance.getDistance(DistanceUnit.INCH) > 4.0 ){
+                    intakeTimer.reset();
+                    while(intakeTimer.seconds() < 2.0 && isRunning){
                         turnOnIntake();
                     }
                     activateSpanker();
                     sleep(500);
                     turnOffIntake();
                     closeClaw();
+                    sleep(1000);
 
                     //Push the block into place and lower claw onto it only partially
                     //sleep(1000);
@@ -780,47 +821,60 @@ public abstract class PositionBasedAuton3 extends LinearOpMode {
 
 
                     //Wait to cross the x-axis
+                    /*
                     xPos = positioning.getX();
-                    while(axisFlipped ? xPos < 0 : xPos > 0){
+                    while(axisFlipped ? xPos < 0 : xPos > 0 && isRunning){
                         xPos = positioning.getX();
                     }
                     //Grab the block with the claw and raise the lift into position then turn the claw out
                     robot.liftMotor.setPower(-0.75);
-                    while(armHeightDistance.getDistance(DistanceUnit.INCH) < startingHeight + 10.0) {
+                    ehr.setReadHeight(true);
+                    sleep(100);
+                    while(ehr.armHeightD < startingHeight + 9.0 && isRunning) {
                         xPos = positioning.getX();
                     }
+                    ehr.setReadHeight(false);
                     robot.liftMotor.setPower(0);
+
+                     */
 
                     retractSpanker();
 
                     //Wait until dropping the block is requested, then let go of the block and turn the claw back in
-                    while(!blockDropped){
+                    while(!blockDropped  && isRunning ){
                         if(dropBlockRequested){
+                            robot.liftMotor.setPower(-0.75);
+                            ehr.setReadHeight(true);
+                            sleep(100);
+                            while(ehr.armHeightD < startingHeight + 9.0 && isRunning) {
+                                xPos = positioning.getX();
+                            }
+                            robot.liftMotor.setPower(0);
                             turnClawOut();
                             sleep(500);
                             robot.liftMotor.setPower(0.3);
-                            while(armHeightDistance.getDistance(DistanceUnit.INCH) > startingHeight + 3.0) {
+                            loweringTimer.reset();
+                            while(ehr.armHeightD > startingHeight + 4.0  && loweringTimer.seconds() < 1.0 && isRunning) {
                                 robot.liftMotor.setPower(0.3);
                             }
                             robot.liftMotor.setPower(0.0);
                             openClaw();
                             robot.liftMotor.setPower(-0.75);
-                            while(armHeightDistance.getDistance(DistanceUnit.INCH) < startingHeight + 8.0) {
+                            while(ehr.armHeightD < startingHeight + 7.0  && isRunning) {
                                 robot.liftMotor.setPower(-0.75);
                             }
                             robot.liftMotor.setPower(0);
                             closeClaw();
                             turnClawIn();
+                            sleep(750);
+                            while(ehr.armHeightD > startingHeight + 1.0 && isRunning){
+                                robot.liftMotor.setPower(0.5);
+                            }
+                            ehr.setReadHeight(false);
+                            robot.liftMotor.setPower(0.0);
                             blockDropped = true;
                         }
                     }
-                    sleep(750);
-
-                    //Lower the lift back down and open the claw
-                    while(armHeightDistance.getDistance(DistanceUnit.INCH) > startingHeight){
-                        robot.liftMotor.setPower(0.25);
-                    }
-                    robot.liftMotor.setPower(0.0);
                     openClaw();
 
                     //robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);

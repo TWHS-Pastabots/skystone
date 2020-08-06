@@ -25,6 +25,7 @@ public class DriverControlled extends OpMode{
     RobotHardware robot = new RobotHardware();
     ElapsedTime runTime= new ElapsedTime();
     ElapsedTime backTimer2 = new ElapsedTime();
+    ElapsedTime intakeDelayTimer = new ElapsedTime();
     boolean isBlockPush = false;
     double slowCon = 0.8;
     int pos = 0;
@@ -115,8 +116,14 @@ public class DriverControlled extends OpMode{
 
         // intake code
         if(gamepad1.right_bumper){
-            robot.leftIn.setPower(-.7);
-            robot.rightIn.setPower(-.7);
+            if(isBlockPush){
+                isBlockPush = false;
+                intakeDelayTimer.reset();
+            }
+            if(intakeDelayTimer.seconds() > 1.0){
+                robot.leftIn.setPower(-.7);
+                robot.rightIn.setPower(-.7);
+            }
         }
         else if(gamepad1.left_bumper){
             robot.leftIn.setPower(.7);

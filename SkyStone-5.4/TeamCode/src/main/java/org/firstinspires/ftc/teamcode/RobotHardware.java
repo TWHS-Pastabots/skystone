@@ -50,6 +50,10 @@ public class    RobotHardware {
     public CRServo capstone;
 
     public DistanceSensor blockInSensor;
+    public DistanceSensor armHeightDistance;
+    public DistanceSensor blockDistance;
+    public DistanceSensor frontDistance;
+    public DistanceSensor leftDistance;
     public ColorSensor colorSensor;
     public BNO055IMU imu = null;
 
@@ -88,6 +92,10 @@ public class    RobotHardware {
         colorSensor = hwMap.get(ColorSensor.class, "color");
         servo_blockPush = hwMap.get(Servo.class, "servo_blockPush");
         capstone = hwMap.get(CRServo.class, "capstone");
+        armHeightDistance = hwMap.get(DistanceSensor.class, "armHeightDistance");
+        blockDistance = hwMap.get(DistanceSensor.class, "blockDistance");
+        frontDistance = hwMap.get(DistanceSensor.class, "frontDistance");
+        leftDistance = hwMap.get(DistanceSensor.class, "leftDistance");
 
         
         leftFront.setDirection(DcMotor.Direction.FORWARD); // Set to REVERSE if using AndyMark motors
