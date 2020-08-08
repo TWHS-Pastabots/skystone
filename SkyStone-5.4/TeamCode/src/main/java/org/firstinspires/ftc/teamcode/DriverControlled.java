@@ -179,21 +179,17 @@ public class DriverControlled extends OpMode{
         }
 
         // claw
-        if (G2a)
-        {
+        if (G2a) {
             robot.claw.setPosition(1);
         }
-        else if (G2b)
-        {
+        else if (G2b) {
             robot.claw.setPosition(0.5);
         }
 
-        if(G2right)
-        {
+        if(G2right) {
             robot.clawT.setPosition(0);
         }
-        else if (G2left)
-        {
+        else if (G2left) {
             robot.clawT.setPosition(1);
         }
 
@@ -209,45 +205,6 @@ public class DriverControlled extends OpMode{
             robot.capstone.setPower(0.0);
         }
 
-        /*if (G1leftStickY>.9){
-            v1=1;
-            v2=1;
-            v3=1;
-            v4=1;
-        }
-        if (G1leftStickY<-.9){
-            v1=-1;
-            v2=-1;
-            v3=-1;
-            v4=-1;
-        }
-
-        if (G1leftStickY<-.9){
-            v1=-1;
-            v2=-1;
-            v3=-1;
-            v4=-1;
-        }
-        if (G1leftStickY>.9){
-            v1=1;
-            v2=1;
-            v3=1;
-            v4=1;
-        }
-        if (G1leftStickX>.9){
-            v1=1;
-            v2=-1;
-            v3=-1;
-            v4=1;
-        }
-        if (G1leftStickX<-.9){
-            v1=-1;
-            v2=1;
-            v3=1;
-            v4=-1;
-        }
-
-         */
 
         if(gamepad1.dpad_up){
             robot.tape.setPower(-1.0);
@@ -283,7 +240,5 @@ public class DriverControlled extends OpMode{
     public void stop(){
     }
 
-    //test 15
-    //Another one
 }
 
