@@ -27,7 +27,7 @@ import com.qualcomm.robotcore.hardware.ColorSensor;
  * initialize all of them each time you make a new class.
  *
  */
-public class    RobotHardware {
+public class RobotHardware {
 
     /* Declare OpMode members. */
     public DcMotor leftFront = null;
@@ -67,9 +67,9 @@ public class    RobotHardware {
     }
 
     /* Initialize standard Hardware interfaces */
-    public void init(HardwareMap ahwMap) {
+    public void init(HardwareMap hwMap) {
         // Save reference to Hardware map
-        hwMap = ahwMap;
+        this.hwMap = hwMap;
 
         // Define and Initialize Motors
         leftFront = hwMap.get(DcMotor.class, "left_front");
@@ -97,9 +97,9 @@ public class    RobotHardware {
         frontDistance = hwMap.get(DistanceSensor.class, "frontDistance");
         leftDistance = hwMap.get(DistanceSensor.class, "leftDistance");
 
-        
-        leftFront.setDirection(DcMotor.Direction.FORWARD); // Set to REVERSE if using AndyMark motors
-        leftRear.setDirection(DcMotor.Direction.FORWARD);// Set to FORWARD if using AndyMark motors
+        // Motor direction is FORWARD by default
+        leftFront.setDirection(DcMotor.Direction.FORWARD);
+        leftRear.setDirection(DcMotor.Direction.FORWARD);
         rightFront.setDirection(DcMotor.Direction.REVERSE);
         rightRear.setDirection(DcMotor.Direction.REVERSE);
         leftIn.setDirection(DcMotor.Direction.REVERSE);
